@@ -7,12 +7,13 @@ import javax.naming.NamingException;
 import com.tibco.tibjms.Tibjms;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Enumeration;
 
 /**
  * <p>
  * @author Pierre Ayel
- * @version 1.3.3
+ * @version 1.4.0
  */
 public class EMSQueueBrowser extends EMSQueueClient {
     
@@ -33,7 +34,7 @@ public class EMSQueueBrowser extends EMSQueueClient {
 	 * @param p_args The command line arguments.
 	 * @throws Throwable
 	 */
-	public EMSQueueBrowser(String[] p_args) throws IOException {
+	public EMSQueueBrowser(final String[] p_args) throws IOException {
 		super();
 		
 		// force default count to 0
@@ -82,7 +83,7 @@ public class EMSQueueBrowser extends EMSQueueClient {
             i_connection = createQueueConnection();
         }
         //1.2.0
-        catch (JMSException ex) {
+        catch (final JMSException ex) {
         	logError("failed to connect...");
         	logError(ex);
         	System.exit(EXIT_CODE_CONNECTION_ERROR);
@@ -129,7 +130,8 @@ public class EMSQueueBrowser extends EMSQueueClient {
 				try {
 					logDebug("closing session...");
 					i_session.close();
-				} catch (JMSException e) {
+				} 
+        		catch (final JMSException e) {
 					logError(e);
 				}
         	
@@ -138,7 +140,8 @@ public class EMSQueueBrowser extends EMSQueueClient {
 				try {
 					logDebug("closing connection...");
 					i_connection.close();
-				} catch (JMSException e) {
+				} 
+        		catch (final JMSException e) {
 					logError(e);
 				}
         }
@@ -147,43 +150,38 @@ public class EMSQueueBrowser extends EMSQueueClient {
     /**
      * Prints the command line usage on standard error.
      */
-    public void usage() {
-        System.err.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
-        System.err.println("");
-        System.err.println("   where options are:");
-        System.err.println("");
-        System.err.println("  -server     <serverURL> - EMS server URL, default is local server");
-        System.err.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
-        System.err.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
-        System.err.println("  -user       <user name> - user name, default is null");
-        System.err.println("  -password   <password>  - password, default is null");
-        System.err.println("  -queue      <name>      - The Queue full name");
-        System.err.println("  -jndi_queue <name>      - The Queue JNDI name");
-        System.err.println("  -selector   <selector>  - The selector expression");
-        System.err.println("  -log        <file name> - The output log file/folder name");
+    public void usage(final PrintStream p_out) {
+        p_out.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
+        p_out.println("");
+        p_out.println("   where options are:");
+        p_out.println("");
+        p_out.println("  -server     <serverURL> - EMS server URL, default is local server");
+        p_out.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
+        p_out.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
+        p_out.println("  -user       <user name> - user name, default is null");
+        p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("  -queue      <name>      - The Queue full name");
+        p_out.println("  -jndi_queue <name>      - The Queue JNDI name");
+        p_out.println("  -selector   <selector>  - The selector expression");
+        p_out.println("  -log        <file name> - The output log file/folder name");
         
         //1.0.0
-        System.err.println("");
-        System.err.println("  -noUnmap                - disables unmapping of received MapMessage(s) before tracing");
-        
-        System.exit(EXIT_CODE_INVALID_USAGE);
+        p_out.println("");
+        p_out.println("  -noUnmap                - disables unmapping of received MapMessage(s) before tracing");
     }
 
 	/**************************************************************************/
 	/***  MAIN METHOD  ********************************************************/
 	/**************************************************************************/
     
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
         try {
-        	//1.3.3
-        	//new EMSQueueBrowser(args);
-        	
-        	EMSQueueBrowser i_tool = new EMSQueueBrowser(args);
+        	final EMSQueueBrowser i_tool = new EMSQueueBrowser(args);
         	i_tool.start();
         	
         	System.exit(EXIT_CODE_SUCCESS);
         }
-        catch (Throwable ex) {
+        catch (final Throwable ex) {
         	ex.printStackTrace();
         	System.exit(EXIT_CODE_UNKNOWN_ERROR);
         }

@@ -3,9 +3,10 @@ package com.tibco.psg.emstools.tools;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
-import java.util.Vector;
-
 import javax.jms.*;
 import javax.naming.NamingException;
 
@@ -13,7 +14,7 @@ import javax.naming.NamingException;
  * <p>
  * @author Richard Lawrence
  * @author Pierre Ayel
- * @version 1.3.3
+ * @version 1.4.0
  */
 public class EMSTopicPublisher extends EMSTopicClient {
     
@@ -29,8 +30,8 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	/*************************************************************************/
 	
 	/**
-	 * A thread containing one <code>EMSQueueSender</code> object.
-	 * When the thread runs, it invokes the {@link EMSQueueSender#start()} method.
+	 * A thread containing one <code>EMSTopicPublisher</code> object.
+	 * When the thread runs, it invokes the {@link EMSTopicPublisher#start()} method.
 	 * <p>
 	 * @author Pierre Ayel
 	 * @version 1.3.0
@@ -38,24 +39,25 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	 */
 	public static class pThread extends Thread {
 		
-		private EMSTopicPublisher m_sender;
+		private final EMSTopicPublisher m_sender;
 		
-		public pThread(int n, EMSTopicPublisher p_receiver) {
+		public pThread(final int n, final EMSTopicPublisher p_sender) {
 			super();
 			setName("TopicPublisher-Thread-"+((n<9)? "0":"")+n);
 			setDaemon(false);
-			m_sender = p_receiver;
+			m_sender = p_sender;
 		}
 		
+		@Override
 		public void run() {
 			try {
 				m_sender.start();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} 
+			catch (final Exception ex) {
+				m_sender.logError("Failed to start msg publisher: ".concat(ex.getMessage()));
 			}
 		}
-	};
+	}
 	
 	/**
 	 * A class containing a connection, session and topic sender created by this object.
@@ -64,26 +66,18 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	 * @version 1.3.2
 	 * @since 1.3.2
 	 */
-	public class pWorkSession extends Object {
+	public class WorkSession extends Object {
 		
         private TopicConnection m_connection;
         private TopicSession m_session;
         private Topic m_topic;
-        private TopicPublisher m_publisher;
-        
-        /** Total number of message sent. */
-        private long m_totalMsgs = 0;
              
         /**
-    	 * Creates a new <code>pWorkSession</code> object.
+    	 * Creates a new <code>WorkSession</code> object.
     	 * <p>
     	 * Exits if the connection fails.
-    	 * <p>
-    	 * @throws JMSException In case of JMSException.
-    	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
-    	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
     	 */
-        public pWorkSession() throws JMSException, NamingException, IOException {
+        public WorkSession() throws JMSException, NamingException, IOException {
         	super();
         	
         	//*** CONNECT
@@ -91,25 +85,16 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	            m_connection = createTopicConnection();
 	        }
 	        //1.2.0
-	        catch (JMSException ex) {
+	        catch (final JMSException ex) {
 	        	logError("failed to connect...");
 	        	logError(ex);
 	        	System.exit(EXIT_CODE_CONNECTION_ERROR);
 	        }
 	            
-	        try {
-	            m_session = m_connection.createTopicSession(false,javax.jms.Session.AUTO_ACKNOWLEDGE);
-	            
-	            //1.3.3
-	            m_topic = EMSTopicPublisher.this.getTopic(m_session);
-	            
-	            m_publisher = m_session.createPublisher(m_topic);
-	
-	            //1.2.0
-	            //1.3.3: logInfo("Publishing on topic '"+m_topic.getTopicName()+"'");
-	        }
-	        finally {
-	        }
+            m_session = m_connection.createTopicSession(false,javax.jms.Session.AUTO_ACKNOWLEDGE);
+            
+            //1.3.3
+            m_topic = EMSTopicPublisher.this.getTopic(m_session);
         }
         
 		public TopicConnection getTopicConnection() {
@@ -124,6 +109,55 @@ public class EMSTopicPublisher extends EMSTopicClient {
         	return m_topic;
         }
         
+    	/**
+    	 * Closes the topic publisher.
+    	 * <p>
+    	 * @throws JMSException In case of JMSException.
+    	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
+    	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
+    	 */
+        public void close() throws JMSException, NamingException, IOException {
+        	
+        	//*** CLOSE JMS SESSION
+        	if (null!=m_session)
+    			try {
+    				logDebug("Closing session...");
+    				m_session.close();
+    			} 
+    			catch (final JMSException ex) {
+    				logError(ex);
+    			}
+        	
+        	//*** CLOSE JMS CONNECTION
+        	if (null!=m_connection)
+    			try {
+    				logDebug("Closing connection...");
+    				m_connection.close();
+    			} 
+    			catch (final JMSException ex) {
+    				logError(ex);
+    			}
+        }
+ 	}
+	
+	public class WorkSession_Sender extends WorkSession {
+		
+		private TopicPublisher m_publisher;
+		
+        /** Total number of message sent. */
+        private long m_totalMsgs = 0;
+             
+        /**
+    	 * Creates a new <code>WorkSession_Sender</code> object.
+    	 * <p>
+    	 * Exits if the connection fails.
+    	 */
+        public WorkSession_Sender() throws JMSException, NamingException, IOException {
+        	super();
+        	
+            m_publisher = getTopicSession().createPublisher(getTopic());
+        }
+        
         public TopicPublisher getTopicPublisher() {
         	return m_publisher;
         }
@@ -135,37 +169,10 @@ public class EMSTopicPublisher extends EMSTopicClient {
         	return m_totalMsgs;
         }
         
-    	/**
-    	 * Closes the topic publisher.
-    	 * <p>
-    	 * @throws JMSException In case of JMSException.
-    	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
-    	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
-    	 */
-        public void close() throws JMSException, NamingException, IOException {
-        	//*** CLOSE JMS SESSION
-        	if (null!=m_session)
-				try {
-					logDebug("Closing session...");
-					m_session.close();
-				} catch (JMSException e) {
-					logError(e);
-				}
-        	
-        	//*** CLOSE JMS CONNECTION
-        	if (null!=m_connection)
-				try {
-					logDebug("Closing connection...");
-					m_connection.close();
-				} catch (JMSException e) {
-					logError(e);
-				}
-        }
-        
-    	/**
+       	/**
     	 * @since 1.2.0
     	 */
-    	public void sendMessage(TextMessage message, int delMode) throws JMSException {
+    	public void sendMessage(final TextMessage message, final int delMode) throws JMSException {
     		
     	    // Set default Properties
     	    message.setBooleanProperty("JMS_TIBCO_PRESERVE_UNDELIVERED", true);
@@ -188,9 +195,9 @@ public class EMSTopicPublisher extends EMSTopicClient {
     		    saveMessage(message, "$MsgNotify$");
 
     		try { Thread.sleep(m_delay_ms); }
-    		catch (InterruptedException e) { }		
+    		catch (final InterruptedException e) { }		
     	}
-	};
+	}
 	
 	/*************************************************************************/
 	/***  CONSTRUCTORS  ******************************************************/
@@ -202,7 +209,7 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	 * @param p_args The command line arguments.
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.
 	 */
-	public EMSTopicPublisher(String[] p_args) throws IOException {
+	public EMSTopicPublisher(final String[] p_args) throws IOException {
 		super(p_args);
 		
         parseArgs(p_args);
@@ -219,10 +226,6 @@ public class EMSTopicPublisher extends EMSTopicClient {
 
         //1.3.3
         checkArguments();
-
-        //1.2.0 System.out.println("Publishing on topic '"+m_topic_name+"'\n");
-        //1.3.0
-        //start(); //user must call start()...
 	}
 	
 	/**
@@ -237,26 +240,9 @@ public class EMSTopicPublisher extends EMSTopicClient {
 
         //*** CONNECT, CREATE SESSION AND TOPIC PUBLISHER
 		/* 1.3.2 */
-		pWorkSession i_work_session = init();
-		/*
-        //*** CONNECT
-        TopicConnection i_connection = null;
-        TopicSession i_session = null;
-        try {
-            i_connection = createTopicConnection();
-        }
-        //1.2.0
-        catch (JMSException ex) {
-        	logError("failed to connect...");
-        	logError(ex);
-        	System.exit(EXIT_CODE_CONNECTION_ERROR);
-        }*/
+		final WorkSession_Sender i_work_session = init();
 		
         try {
-            /*i_session = i_connection.createTopicSession(false,javax.jms.Session.AUTO_ACKNOWLEDGE);
-            Topic i_topic = i_session.createTopic(m_topic_name);
-            TopicPublisher i_publisher = i_session.createPublisher(i_topic);*/
-
             //1.3.0
 			//*** WAIT FOR 1ST MSG ON TRIGGER TOPIC BEFORE STARTING PUBLISHING/SENDING LOOP
            	waitOnTriggerTopic();	
@@ -264,10 +250,10 @@ public class EMSTopicPublisher extends EMSTopicClient {
             //1.2.0
             logInfo("Publishing on topic '"+i_work_session.getTopic().getTopicName()+"'");
             
-            if (m_in_files.size()==1 && m_in_files.firstElement().isDirectory())
+            if (m_in_files.size()==1 && m_in_files.get(0).isDirectory())
             	while (i_work_session.getTotalMsgs()<m_count) { //1.3.0
             		
-            		for(File i_file : m_in_files.firstElement().listFiles()) {
+            		for(File i_file : m_in_files.get(0).listFiles()) {
             			
             			//1.3.0
             			if (i_work_session.getTotalMsgs()>=m_count) break;
@@ -329,30 +315,31 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
 	 * @since 1.3.0
 	 */
-	public pWorkSession init() throws JMSException, NamingException, IOException {
-		return new pWorkSession();
+	public WorkSession_Sender init() throws JMSException, NamingException, IOException {
+		return new WorkSession_Sender();
 	}
 	
     /**
      * Prints the command line usage on standard error.
      */
-    public void usage() {
-        System.err.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
-        System.err.println("");
-        System.err.println("   where options are:");
-        System.err.println("");
-        System.err.println("  -server     <serverURL> - EMS server URL");
-        System.err.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
-        System.err.println("  -factory    <factory>   - JNDI factory name, default TopicConnectionFactory");
-        System.err.println("  -user       <user name> - user name, default is null");
-        System.err.println("  -password   <password>  - password, default is null");
-        System.err.println("  -topic      <name>      - The Topic full name");
-        System.err.println("  -jndi_topic <name>      - The Topic JNDI name");
-        System.err.println("  -infile     <file name> - The file/folder that contains the message(s) to send");
-        //System.err.println("                             You can repeat this parameter multiple time to send multiple files/folders");
-        System.err.println("  -log        <file name> - The output log file/folder name");
-        System.err.println("  -count      <count>     - Number of messages to send, default 1");
-        System.err.println("  -delay      <millisecs> - Delay between messages, default 1000");
+	@Override
+    public void usage(final PrintStream p_out) {
+        p_out.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
+        p_out.println("");
+        p_out.println("   where options are:");
+        p_out.println("");
+        p_out.println("  -server     <serverURL> - EMS server URL");
+        p_out.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
+        p_out.println("  -factory    <factory>   - JNDI factory name, default TopicConnectionFactory");
+        p_out.println("  -user       <user name> - user name, default is null");
+        p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("  -topic      <name>      - The Topic full name");
+        p_out.println("  -jndi_topic <name>      - The Topic JNDI name");
+        p_out.println("  -infile     <file name> - The file/folder that contains the message(s) to send");
+        //p_out.println("                             You can repeat this parameter multiple time to send multiple files/folders");
+        p_out.println("  -log        <file name> - The output log file/folder name");
+        p_out.println("  -count      <count>     - Number of messages to send, default 1");
+        p_out.println("  -delay      <millisecs> - Delay between messages, default 1000");
         
         System.exit(EXIT_CODE_INVALID_USAGE);
     }
@@ -361,18 +348,15 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	/***  MAIN METHOD  ********************************************************/
 	/**************************************************************************/
 
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
     	try {
-	        //1.3.0
-    		//new EMSTopicPublisher(args);
-    		
-    		EMSTopicPublisher i_tool = new EMSTopicPublisher(args);
+    		final EMSTopicPublisher i_tool = new EMSTopicPublisher(args);
         	
         	if (i_tool.getTestThreadCount()>1) {
-        		Vector<pThread> i_threads = new Vector<pThread>(i_tool.getTestThreadCount());
+        		final List<pThread> i_threads = new ArrayList<>(i_tool.getTestThreadCount());
         		for(int i=0;i<i_tool.getTestThreadCount();i++) {
         			i_tool.logInfo("Starting new thread ("+(1+i)+"/"+i_tool.getTestThreadCount()+")...");
-        			pThread i_thread = new pThread(i+1, new EMSTopicPublisher(args));
+        			final pThread i_thread = new pThread(i+1, new EMSTopicPublisher(args));
         			i_thread.start();
         			i_threads.add(i_thread);
         		}
@@ -384,7 +368,7 @@ public class EMSTopicPublisher extends EMSTopicClient {
     		
 	        System.exit(EXIT_CODE_SUCCESS);
 	    }
-	    catch (Throwable ex) {
+	    catch (final Throwable ex) {
 	    	ex.printStackTrace();
 	    	System.exit(EXIT_CODE_UNKNOWN_ERROR);
 	    }

@@ -2,8 +2,9 @@
 package com.tibco.psg.emstools.tools;
 
 import java.io.IOException;
-import java.util.Vector;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import javax.jms.*;
 import javax.naming.NamingException;
 
@@ -12,7 +13,7 @@ import com.tibco.tibjms.Tibjms;
 /**
  * <p>
  * @author Pierre Ayel
- * @version 1.3.3
+ * @version 1.4.0
  */
 public class EMSTopicListener extends EMSTopicClient {
     
@@ -37,24 +38,25 @@ public class EMSTopicListener extends EMSTopicClient {
 	 */
 	public static class pThread extends Thread {
 		
-		private EMSTopicListener m_receiver;
+		private final EMSTopicListener m_receiver;
 		
-		public pThread(int n,EMSTopicListener p_receiver) {
+		public pThread(final int n, final EMSTopicListener p_receiver) {
 			super();
 			setName("TopicListener-Thread-"+((n<9)? "0":"")+n);
 			setDaemon(false);
 			m_receiver = p_receiver;
 		}
 		
+		@Override
 		public void run() {
 			try {
 				m_receiver.start();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} 
+			catch (final Exception ex) {
+				m_receiver.logError("Failed to start msg receiver: ".concat(ex.getMessage()));
 			}
 		}
-	};
+	}
 	
 	/*************************************************************************/
 	/***  CONSTRUCTORS  ******************************************************/
@@ -66,10 +68,9 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * @param p_args The command line arguments.
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.
 	 */
-	public EMSTopicListener(String[] p_args) throws IOException {
+	public EMSTopicListener(final String[] p_args) throws IOException {
 		super(p_args);
 		
-    	//1.1: put count with default value 0 and timeout to 0;
     	m_count = 0;
     	m_timeout_s = 0;
     	m_delay_ms = 0; //1.3.0
@@ -81,7 +82,6 @@ public class EMSTopicListener extends EMSTopicClient {
         log("------------------------------------------------------------------------");
         //1.3.0
         log(toString());
-        //System.out.println("" + getClass().getSimpleName());
         log("------------------------------------------------------------------------");
         getConnectionConfiguration().logURL(this);
         //1.3.3
@@ -93,10 +93,6 @@ public class EMSTopicListener extends EMSTopicClient {
        
         //1.3.3
         checkArguments();
-
-        //1.2.0 System.out.println("Listening on topic: "+m_topic_name+"\n");
-        //1.3.0
-        //start(); //user must call start()...
 	}
 	
 	/**
@@ -127,7 +123,7 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * @see javax.jms.Session
 	 * @since 1.3.0
 	 */
-	public void start(int p_mode) throws JMSException, NamingException {
+	public void start(final int p_mode) throws JMSException, NamingException {
         
 		long i_totalMsgs = 0;
 		
@@ -141,7 +137,7 @@ public class EMSTopicListener extends EMSTopicClient {
 	            i_connection = createTopicConnection();
 	        }
 	        //1.2.0
-	        catch (JMSException ex) {
+	        catch (final JMSException ex) {
 	        	logError("failed to connect...");
 	        	logError(ex);
 	        	
@@ -191,7 +187,6 @@ public class EMSTopicListener extends EMSTopicClient {
 	            else
 	                i_topic = i_session.createTopic(getDestinationConfiguration().getTopicName());
 	        	
-	        	//Topic i_topic = i_session.createTopic(m_topic_name);
 	            String i_selector = getDestinationConfiguration().getSelector();
 	            i_subscriber = (null!=i_selector)? i_session.createSubscriber(i_topic, i_selector, true) : i_session.createSubscriber(i_topic);
 	
@@ -223,7 +218,6 @@ public class EMSTopicListener extends EMSTopicClient {
 		            if (!isQuiet()) // 1.3.0
 		            	if (isDebugEnabled())
 		            		logDebug(i_totalMsgs+": Received message ("+Tibjms.calculateMessageSize(i_msg)+" bytes): "+i_msg);
-		            //System.out.println("Received message: "+i_msg);
 		            
 		            i_totalMsgs++;
 		            
@@ -241,9 +235,9 @@ public class EMSTopicListener extends EMSTopicClient {
 	            }
 	         
 	            //1.3.0
-		        break; //break from while(true);
+		        break;
 	        }
-	        catch (JMSException ex) {
+	        catch (final JMSException ex) {
 	        	if (getConnectionConfiguration().mustReconnect())
 	        		logError(ex);
 	        	else
@@ -258,7 +252,8 @@ public class EMSTopicListener extends EMSTopicClient {
 		        	
 						logInfo("Closing subscriber...");
 						i_subscriber.close();
-					} catch (JMSException ex) {
+					} 
+	        		catch (final JMSException ex) {
 						logError(ex);
 					}
 	        	
@@ -267,14 +262,15 @@ public class EMSTopicListener extends EMSTopicClient {
 					try {
 						logInfo("Closing session...");
 						i_session.close();
-					} catch (JMSException e) {
+					} 
+	        		catch (final JMSException e) {
 						logError(e);
 					}
 	        	
 	        	//*** CLOSE JMS CONNECTION
 	        	closeTopicConnection();
 	        }
-		}// while(true)
+		}
     }
 	
 	/**
@@ -285,7 +281,7 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * @throws JMSException In case of failure while extracting data from the message.
 	 * @since 1.3.0
 	 */
-	protected void onMessage(Session p_session, Message p_message) throws JMSException {
+	protected void onMessage(final Session p_session, final Message p_message) throws JMSException {
 		if (m_out_file!=null)
 	    	saveMessage(p_message, "$Msg$"); 
 		
@@ -300,47 +296,43 @@ public class EMSTopicListener extends EMSTopicClient {
     /**
      * Prints the command line usage on standard error.
      */
-    public void usage() {
-        System.err.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
-        System.err.println("");
-        System.err.println("   where options are:");
-        System.err.println("");
-        System.err.println("  -server     <serverURL> - EMS server URL");
-        System.err.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
-        System.err.println("  -factory    <factory>   - JNDI factory name, default TopicConnectionFactory");
-        System.err.println("  -user       <user name> - user name, default is null");
-        System.err.println("  -password   <password>  - password, default is null");
-        System.err.println("  -topic      <name>      - The Topic full name");
-        System.err.println("  -jndi_topic <name>      - The Topic JNDI name");
-        System.err.println("  -selector   <selector>  - selector expression");
-        System.err.println("  -infile     <file name> - The file name that contains the response message");
-        System.err.println("  -log        <file name> - The output log file/folder name");
-        System.err.println("  -count      <count>     - maximum number of messages to process (default is infinite)");
-        System.err.println("  -timeout    <timeout>   - time to wait for next message in seconds, otherwise stops (default is infinite)");
+	@Override
+    public void usage(final PrintStream p_out) {
+        p_out.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
+        p_out.println("");
+        p_out.println("   where options are:");
+        p_out.println("");
+        p_out.println("  -server     <serverURL> - EMS server URL");
+        p_out.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
+        p_out.println("  -factory    <factory>   - JNDI factory name, default TopicConnectionFactory");
+        p_out.println("  -user       <user name> - user name, default is null");
+        p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("  -topic      <name>      - The Topic full name");
+        p_out.println("  -jndi_topic <name>      - The Topic JNDI name");
+        p_out.println("  -selector   <selector>  - selector expression");
+        p_out.println("  -infile     <file name> - The file name that contains the response message");
+        p_out.println("  -log        <file name> - The output log file/folder name");
+        p_out.println("  -count      <count>     - maximum number of messages to process (default is infinite)");
+        p_out.println("  -timeout    <timeout>   - time to wait for next message in seconds, otherwise stops (default is infinite)");
         
         //1.3.2
-        System.err.println("");
-        System.err.println("  -noUnmap                - disables unmapping of received MapMessage(s) before tracing");
-        
-        System.exit(EXIT_CODE_INVALID_USAGE);
+        p_out.println("");
+        p_out.println("  -noUnmap                - disables unmapping of received MapMessage(s) before tracing");
     }
 
 	/**************************************************************************/
 	/***  MAIN METHOD  ********************************************************/
 	/**************************************************************************/
     
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
         try {
-        	//1.3.0: 
-        	//new EMSTopicListener(args);
-        	
-        	EMSTopicListener i_tool = new EMSTopicListener(args);
+        	final EMSTopicListener i_tool = new EMSTopicListener(args);
         	
         	if (i_tool.getTestThreadCount()>1) {
-        		Vector<pThread> i_threads = new Vector<pThread>(i_tool.getTestThreadCount());
+        		final List<pThread> i_threads = new ArrayList<>(i_tool.getTestThreadCount());
         		for(int i=0;i<i_tool.getTestThreadCount();i++) {
         			i_tool.logInfo("Starting new thread ("+(1+i)+"/"+i_tool.getTestThreadCount()+")...");
-        			pThread i_thread = new pThread(i+1, new EMSTopicListener(args));
+        			final pThread i_thread = new pThread(i+1, new EMSTopicListener(args));
         			i_thread.start();
         			i_threads.add(i_thread);
         		}
@@ -352,7 +344,7 @@ public class EMSTopicListener extends EMSTopicClient {
         	
         	System.exit(EXIT_CODE_SUCCESS);
         }
-        catch (Throwable ex) {
+        catch (final Throwable ex) {
         	ex.printStackTrace();
         	System.exit(EXIT_CODE_UNKNOWN_ERROR);
         }

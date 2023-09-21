@@ -37,7 +37,7 @@ public class EMSAdmin extends Object implements Serializable {
 	/**
 	 * The TIBCO EMS Admin API main object to administer the EMS server where EMSAdmin tool is connected to.
 	 */
-	protected TibjmsAdmin m_admin;
+	private final TibjmsAdmin m_admin;
 	
 	/**
 	 * @since 1.3.7
@@ -53,7 +53,7 @@ public class EMSAdmin extends Object implements Serializable {
 	/***  CONSTRUCTORS  ******************************************************/
 	/*************************************************************************/
 
-	public EMSAdmin(String p_server, String p_userName, String p_password) throws TibjmsAdminException {
+	public EMSAdmin(final String p_server, final String p_userName, final String p_password) throws TibjmsAdminException {
 		super();
 		m_admin = new TibjmsAdmin(p_server, p_userName, p_password);
 	}
@@ -74,7 +74,7 @@ public class EMSAdmin extends Object implements Serializable {
 	 * @param m_flag_header the m_flag_header to set
 	 * @since 1.3.7
 	 */
-	public void setPrintHeader(boolean m_flag_header) {
+	public void setPrintHeader(final boolean m_flag_header) {
 		this.m_flag_header = m_flag_header;
 	}
 
@@ -90,7 +90,7 @@ public class EMSAdmin extends Object implements Serializable {
 	 * @param m_flag_timestamp the m_flag_timestamp to set
 	 * @since 1.3.7
 	 */
-	public void setPrintTimestamp(boolean m_flag_timestamp) {
+	public void setPrintTimestamp(final boolean m_flag_timestamp) {
 		this.m_flag_timestamp = m_flag_timestamp;
 	}
 
@@ -99,75 +99,101 @@ public class EMSAdmin extends Object implements Serializable {
 	/*************************************************************************/
 
 	public void getACLEntries() throws TibjmsAdminException {
-		ACLEntryFormat.printCSV(m_admin.getACLEntries(), printHeader(), printTimestamp());
+		ACLEntryFormat.printCSV(System.out, m_admin.getACLEntries(), printHeader(), printTimestamp());
 	}
 
-	public void getGroupACLEntries(String p_groupName) throws TibjmsAdminException {
-		ACLEntryFormat.printCSV(m_admin.getGroupACLEntries(p_groupName), printHeader(), printTimestamp());
+	public void getGroupACLEntries(final String p_groupName) throws TibjmsAdminException {
+		ACLEntryFormat.printCSV(System.out, m_admin.getGroupACLEntries(p_groupName), printHeader(), printTimestamp());
 	}
 
-	public void getUserACLEntries(String p_userName) throws TibjmsAdminException {
-		ACLEntryFormat.printCSV(m_admin.getUserACLEntries(p_userName), printHeader(), printTimestamp());
+	public void getUserACLEntries(final String p_userName) throws TibjmsAdminException {
+		ACLEntryFormat.printCSV(System.out, m_admin.getUserACLEntries(p_userName), printHeader(), printTimestamp());
 	}
 
-	public void getQueueACLEntries(String p_queueName) throws TibjmsAdminException {
-		ACLEntryFormat.printCSV(m_admin.getQueueACLEntries(p_queueName), printHeader(), printTimestamp());
+	public void getQueueACLEntries(final String p_queueName) throws TibjmsAdminException {
+		ACLEntryFormat.printCSV(System.out, m_admin.getQueueACLEntries(p_queueName), printHeader(), printTimestamp());
 	}
 
-	public void getTopicACLEntries(String p_topicName) throws TibjmsAdminException {
-		ACLEntryFormat.printCSV(m_admin.getTopicACLEntries(p_topicName), printHeader(), printTimestamp());
+	public void getTopicACLEntries(final String p_topicName) throws TibjmsAdminException {
+		ACLEntryFormat.printCSV(System.out, m_admin.getTopicACLEntries(p_topicName), printHeader(), printTimestamp());
 	}
 	
 	public void getConnectionFactories() throws TibjmsAdminException {
-		ConnectionFactoryInfoFormat.printCSV(m_admin.getConnectionFactories(), printHeader(), printTimestamp());
+		ConnectionFactoryInfoFormat.printCSV(System.out, m_admin.getConnectionFactories(), printHeader(), printTimestamp());
 	}
 	
 	/**
 	 * @since 0.5
 	 */
-	public void getConnection(String p_connectionID) throws TibjmsAdminException {
-		long i_connectionID = new Long(p_connectionID).longValue();
+	public void getConnection(final String p_connectionID) throws TibjmsAdminException {
+		final long i_connectionID = Long.parseLong(p_connectionID);
 		
 		ConnectionInfoFormat.printCSV(
-			ConnectionInfoFilter.filterByConnectionID(m_admin.getConnections(), i_connectionID), printHeader(), printTimestamp());
+			System.out,
+			ConnectionInfoFilter.filterByConnectionID(m_admin.getConnections(), i_connectionID), 
+			printHeader(), 
+			printTimestamp());
 		ConnectionInfoFormat.printCSV(
-			ConnectionInfoFilter.filterByConnectionID(m_admin.getSystemConnections(), i_connectionID), false, false);
+			System.out,
+			ConnectionInfoFilter.filterByConnectionID(m_admin.getSystemConnections(), i_connectionID), 
+			false, 
+			false);
 	}
 
 	/**
 	 * @since 0.5
 	 */
-	public void getConnectionByUsername(String p_username) throws TibjmsAdminException {
+	public void getConnectionByUsername(final String p_username) throws TibjmsAdminException {
 		ConnectionInfoFormat.printCSV(
-			ConnectionInfoFilter.filterByUsername(m_admin.getConnections(), p_username), printHeader(), printTimestamp());
+			System.out,
+			ConnectionInfoFilter.filterByUsername(m_admin.getConnections(), p_username), 
+			printHeader(), 
+			printTimestamp());
 		ConnectionInfoFormat.printCSV(
-			ConnectionInfoFilter.filterByUsername(m_admin.getSystemConnections(), p_username), false, false);
+			System.out,
+			ConnectionInfoFilter.filterByUsername(m_admin.getSystemConnections(), p_username), 
+			false, 
+			false);
 	}
 
 	/**
 	 * @since 0.5
 	 */
-	public void getConnectionByHostname(String p_hostname) throws TibjmsAdminException {
+	public void getConnectionByHostname(final String p_hostname) throws TibjmsAdminException {
 		ConnectionInfoFormat.printCSV(
-			ConnectionInfoFilter.filterByHostname(m_admin.getConnections(), p_hostname), printHeader(), printTimestamp());
+			System.out,	
+			ConnectionInfoFilter.filterByHostname(m_admin.getConnections(), p_hostname), 
+			printHeader(), 
+			printTimestamp());
 		ConnectionInfoFormat.printCSV(
-			ConnectionInfoFilter.filterByHostname(m_admin.getSystemConnections(), p_hostname), false, false);
+			System.out,
+			ConnectionInfoFilter.filterByHostname(m_admin.getSystemConnections(), p_hostname), 
+			false, 
+			false);
 	}
 	
 	public void getConnections() throws TibjmsAdminException {
-		ConnectionInfoFormat.printCSV(m_admin.getConnections(), printHeader(), printTimestamp());
-		ConnectionInfoFormat.printCSV(m_admin.getSystemConnections(), false, false);
+		ConnectionInfoFormat.printCSV(
+			System.out,
+			m_admin.getConnections(), 
+			printHeader(), 
+			printTimestamp());
+		ConnectionInfoFormat.printCSV(
+			System.out,
+			m_admin.getSystemConnections(), 
+			false, 
+			false);
 	}
 	
 	public void getConsumers() throws TibjmsAdminException {
 		if (printHeader())
 			System.out.println(ConnectionInfoFormat.CSVHeader(printTimestamp())+","+ConsumerInfoFormat.CSVHeader(false));
 		
-		String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
-		ConnectionInfo i_connections[] = m_admin.getConnections();
+		final String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
+		final ConnectionInfo[] i_connections = m_admin.getConnections();
 		
 		for(int i=0;i<i_connections.length;i++) {
-			ConsumerInfo i_consumers[] = m_admin.getConsumersStatistics(new Long(i_connections[i].getID()), null, null);
+			final ConsumerInfo[] i_consumers = m_admin.getConsumersStatistics(new Long(i_connections[i].getID()), null, null);
 			for(int j=0;j<i_consumers.length;j++) {
 				System.out.print(ConnectionInfoFormat.toCSV(i_connections[i], i_timestamp));
 				System.out.print(",");
@@ -177,27 +203,27 @@ public class EMSAdmin extends Object implements Serializable {
 	}
 
 	public void getDurables() throws TibjmsAdminException {
-		DurableInfoFormat.printCSV(m_admin.getDurables(), printHeader(), printTimestamp());
+		DurableInfoFormat.printCSV(System.out, m_admin.getDurables(), printHeader(), printTimestamp());
 	}
 
 	@SuppressWarnings("deprecation")
-	public void getDurables(String p_topicName) throws TibjmsAdminException {
-		DurableInfoFormat.printCSV(m_admin.getDurables(p_topicName), printHeader(), printTimestamp());
+	public void getDurables(final String p_topicName) throws TibjmsAdminException {
+		DurableInfoFormat.printCSV(System.out, m_admin.getDurables(p_topicName), printHeader(), printTimestamp());
 	}
 	
-	public void getDurables(String p_name, String p_cid) throws TibjmsAdminException {
-		DurableInfoFormat.printCSV(new DurableInfo[]{ m_admin.getDurable(p_name, p_cid) }, printHeader(), printTimestamp());
+	public void getDurables(final String p_name, final String p_cid) throws TibjmsAdminException {
+		DurableInfoFormat.printCSV(System.out, new DurableInfo[]{ m_admin.getDurable(p_name, p_cid) }, printHeader(), printTimestamp());
 	}
 	
 	public void getProducers() throws TibjmsAdminException {
 		if (printHeader())
 			System.out.println(ConnectionInfoFormat.CSVHeader(printTimestamp())+","+ProducerInfoFormat.CSVHeader(false));
 		
-		String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
-		ConnectionInfo i_connections[] = m_admin.getConnections();
+		final String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
+		final ConnectionInfo[] i_connections = m_admin.getConnections();
 		
 		for(int i=0;i<i_connections.length;i++) {
-			ProducerInfo i_producers[] = m_admin.getProducersStatistics(new Long(i_connections[i].getID()), null, null);
+			final ProducerInfo[] i_producers = m_admin.getProducersStatistics(new Long(i_connections[i].getID()), null, null);
 			for(int j=0;j<i_producers.length;j++) {
 				System.out.print(ConnectionInfoFormat.toCSV(i_connections[i], i_timestamp));
 				System.out.print(",");
@@ -207,35 +233,35 @@ public class EMSAdmin extends Object implements Serializable {
 	}
 	
 	public void getBridges() throws TibjmsAdminException {
-		BridgeInfoFormat.printCSV(m_admin.getBridges(), printHeader(), printTimestamp());
+		BridgeInfoFormat.printCSV(System.out, m_admin.getBridges(), printHeader(), printTimestamp());
 	}
 
 	public void getGroups() throws TibjmsAdminException {
-		GroupInfoFormat.printCSV(m_admin.getGroups(), printHeader(), printTimestamp());
+		GroupInfoFormat.printCSV(System.out, m_admin.getGroups(), printHeader(), printTimestamp());
 	}
 
 	/** @since 1.3.5 */
 	public void getQueues() throws TibjmsAdminException {
-		QueueInfoFormat.printCSV(m_admin.getQueues(), printHeader(), printTimestamp());
+		QueueInfoFormat.printCSV(System.out, m_admin.getQueues(), printHeader(), printTimestamp());
 	}
 
 	/** @since 1.3.5 */
 	public void getTopics() throws TibjmsAdminException {
-		TopicInfoFormat.printCSV(m_admin.getTopics(), printHeader(), printTimestamp());
+		TopicInfoFormat.printCSV(System.out, m_admin.getTopics(), printHeader(), printTimestamp());
 	}
 	
 	public void getRoutes() throws TibjmsAdminException {
-		RouteInfoFormat.printCSV(m_admin.getRoutes(), printHeader(), printTimestamp());
+		RouteInfoFormat.printCSV(System.out, m_admin.getRoutes(), printHeader(), printTimestamp());
 	}
 	
 	public void getStorage() throws TibjmsAdminException {
 		if (printHeader())
 			System.out.println(StoreInfoFormat.CSVHeader(printTimestamp()));
 		
-		String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
+		final String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
 		
 		for(String i_name : m_admin.getStores()) {
-			StoreInfo i_store = m_admin.getStoreInfo(i_name);
+			final StoreInfo i_store = m_admin.getStoreInfo(i_name);
 			System.out.println(StoreInfoFormat.toCSV(i_name, i_store, i_timestamp));
 		}
 	}
@@ -244,17 +270,17 @@ public class EMSAdmin extends Object implements Serializable {
 		if (printHeader())
 			System.out.println(FileStoreInfoFormat.CSVHeader(printTimestamp()));
 		
-		String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
+		final String i_timestamp = printTimestamp()? StringFormat.timestamp() : null;
 		
 		for(String i_name : m_admin.getStores()) {
-			StoreInfo i_store = m_admin.getStoreInfo(i_name);
+			final StoreInfo i_store = m_admin.getStoreInfo(i_name);
 			if (i_store instanceof FileStoreInfo)
 				System.out.println(FileStoreInfoFormat.toCSV(i_name, (FileStoreInfo)i_store, i_timestamp));
 		}
 	}
 	
 	public void getUsers() throws TibjmsAdminException {
-		UserInfoFormat.printCSV(m_admin.getUsers(), printHeader(), printTimestamp());
+		UserInfoFormat.printCSV(System.out, m_admin.getUsers(), printHeader(), printTimestamp());
 	}
 	
 	public void close() throws TibjmsAdminException {
@@ -265,15 +291,15 @@ public class EMSAdmin extends Object implements Serializable {
 	/**
 	 * @since 0.5
 	 */
-	public void destroyConnection(String p_connectionID) throws TibjmsAdminException {
-		m_admin.destroyConnection(new Long(p_connectionID).longValue());
-		System.out.println("Destroyed connection "+p_connectionID);
+	public void destroyConnection(final String p_connectionID) throws TibjmsAdminException {
+		m_admin.destroyConnection(Long.parseLong(p_connectionID));
+		System.out.println("Destroyed connection ".concat(p_connectionID));
 	}
 	
 	/**
 	 * @since 0.5
 	 */
-	public void destroyConnections(ConnectionInfo p_connections[]) throws TibjmsAdminException {
+	public void destroyConnections(final ConnectionInfo[] p_connections) throws TibjmsAdminException {
 		if (null!=p_connections)
 			for(int i=0;i<p_connections.length;i++)
 				destroyConnection(""+p_connections[i].getID());
@@ -282,7 +308,7 @@ public class EMSAdmin extends Object implements Serializable {
 	/**
 	 * @since 0.5
 	 */
-	public void destroyConnectionByUsername(String p_username) throws TibjmsAdminException {
+	public void destroyConnectionByUsername(final String p_username) throws TibjmsAdminException {
 		destroyConnections(ConnectionInfoFilter.filterByUsername(m_admin.getConnections(), p_username));
 		destroyConnections(ConnectionInfoFilter.filterByUsername(m_admin.getSystemConnections(), p_username));
 	}
@@ -290,7 +316,7 @@ public class EMSAdmin extends Object implements Serializable {
 	/**
 	 * @since 0.5
 	 */
-	public void destroyConnectionByHostname(String p_hostname) throws TibjmsAdminException {
+	public void destroyConnectionByHostname(final String p_hostname) throws TibjmsAdminException {
 		destroyConnections(ConnectionInfoFilter.filterByHostname(m_admin.getConnections(), p_hostname));
 		destroyConnections(ConnectionInfoFilter.filterByHostname(m_admin.getSystemConnections(), p_hostname));
 	}
@@ -331,10 +357,10 @@ public class EMSAdmin extends Object implements Serializable {
 		System.exit(-2);
 	}
 	
-	public static void main(String args[]) {
+	public static void main(final String[] args) {
 		try {
-			String i_server = null;
-			String i_userName = null;
+			String i_server = "tcp://localhost:7222"; //1.4.0
+			String i_userName = "admin"; //1.4.0
 			String i_password = null;
 			String i_print = null;
 			//0.5
@@ -488,7 +514,6 @@ public class EMSAdmin extends Object implements Serializable {
 				
 				if (args[i].equalsIgnoreCase("-destroyConnection")) {
 					i_destroyConnection = args[i];
-					continue;
 				}
 			}
 			
@@ -502,7 +527,7 @@ public class EMSAdmin extends Object implements Serializable {
 			else 
 				usage();
 			
-			EMSAdmin i_admin = new EMSAdmin(i_server, i_userName, i_password);
+			final EMSAdmin i_admin = new EMSAdmin(i_server, i_userName, i_password);
 			
 			//1.3.7
 			i_admin.setPrintHeader(i_header);
@@ -574,7 +599,7 @@ public class EMSAdmin extends Object implements Serializable {
 			}	
 			i_admin.close();
 		}
-		catch (Exception ex) {
+		catch (final Exception ex) {
 			ex.printStackTrace();
 		}
 	}

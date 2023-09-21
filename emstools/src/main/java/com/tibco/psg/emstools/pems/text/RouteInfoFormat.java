@@ -1,6 +1,8 @@
 
 package com.tibco.psg.emstools.pems.text;
 
+import java.io.PrintStream;
+
 import com.tibco.tibjms.admin.*;
 
 /**
@@ -8,19 +10,31 @@ import com.tibco.tibjms.admin.*;
  * objects into CSV (comma-separated-values) lines.
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class RouteInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private RouteInfoFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
+	public static String CSVHeader(final boolean p_timestamp) {
 		return (p_timestamp? "Timestamp,":"")+"Connection ID,Name,Params,URL,Zone,Zone Type,isConfigured,isConnected,isStalled"; 
 	}
 	
-	public static String toCSV(RouteInfo p_route, String p_timestamp) {
+	public static String toCSV(final RouteInfo p_route, final String p_timestamp) {
 		if (null==p_route)
 			return (p_timestamp!=null? p_timestamp:"")+",,,,,,,,";
 		
@@ -59,15 +73,15 @@ public class RouteInfoFormat {
 	 * @param p_header <code>true<code> if the header must be printed out, <code>false</code> otherwise.
 	 * @since 0.4
 	 */
-	public static void printCSV(RouteInfo p_routes[], boolean p_header, boolean p_timestamp) {
-		if (true==p_header)
-			System.out.println(CSVHeader(p_timestamp));
+	public static void printCSV(final PrintStream p_out, final RouteInfo[] p_routes, final boolean p_header, final boolean p_timestamp) {
+		if (p_header)
+			p_out.println(CSVHeader(p_timestamp));
 		
 		if (null!=p_routes) {
-			String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
+			final String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
 			
 			for(int i=0;i<p_routes.length;i++) {
-				System.out.println(toCSV(p_routes[i], i_timestamp));
+				p_out.println(toCSV(p_routes[i], i_timestamp));
 			}
 		}
 	}

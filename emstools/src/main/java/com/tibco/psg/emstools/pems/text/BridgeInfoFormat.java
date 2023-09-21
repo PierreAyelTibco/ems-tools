@@ -1,6 +1,8 @@
 
 package com.tibco.psg.emstools.pems.text;
 
+import java.io.PrintStream;
+
 import com.tibco.tibjms.admin.*;
 
 /**
@@ -8,19 +10,31 @@ import com.tibco.tibjms.admin.*;
  * objects into CSV (comma-separated-values) lines.
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class BridgeInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private BridgeInfoFormat() {
+	}
+	
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
+	public static String CSVHeader(final boolean p_timestamp) {
 		return (p_timestamp? "Timestamp,":"")+"From,Type";
 	}
 	
-	public static String toCSV(BridgeInfo p_bridge, String p_timestamp) {
+	public static String toCSV(final BridgeInfo p_bridge, final String p_timestamp) {
 		if (null==p_bridge)
 			return (p_timestamp!=null? p_timestamp:"")+",";
 		
@@ -37,19 +51,19 @@ public class BridgeInfoFormat {
 	 * @param p_header <code>true<code> if the header must be printed out, <code>false</code> otherwise.
 	 * @since 0.4
 	 */
-	public static void printCSV(BridgeInfo p_bridges[], boolean p_header, boolean p_timestamp) {
-		if (true==p_header)
-			System.out.println(CSVHeader(p_timestamp));
+	public static void printCSV(final PrintStream p_out, final BridgeInfo[] p_bridges, final boolean p_header, final boolean p_timestamp) {
+		if (p_header)
+			p_out.println(CSVHeader(p_timestamp));
 		
 		if (null!=p_bridges) {
-			String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
+			final String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
 			
-			for(int i=0;i<p_bridges.length;i++) {
-				BridgeTarget i_targets[] = p_bridges[i].getTargets();
-				for(int j=0;j<i_targets.length;j++) {
-					System.out.print(BridgeInfoFormat.toCSV(p_bridges[i], i_timestamp));
-					System.out.print(",");
-					System.out.println(BridgeTargetFormat.toCSV(i_targets[j]));
+			for(int i=0 ; i<p_bridges.length ; i++) {
+				final BridgeTarget[] i_targets = p_bridges[i].getTargets();
+				for(int j=0 ; j<i_targets.length ; j++) {
+					p_out.print(BridgeInfoFormat.toCSV(p_bridges[i], i_timestamp));
+					p_out.print(",");
+					p_out.println(BridgeTargetFormat.toCSV(i_targets[j]));
 				}
 			}
 		}

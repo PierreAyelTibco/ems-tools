@@ -6,23 +6,33 @@ import com.tibco.tibjms.admin.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class PrincipalInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	protected PrincipalInfoFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader() {
-		return "Name,Description,isExternal";
-	}
+	public static final String CSV_HEADER = "Name,Description,isExternal";
 
-	public static String CSVHeader(String p_header) {
+	public static String CSVHeader(final String p_header) {
 		return p_header+" Name,"+p_header+" Description,"+p_header+" is External";
 	}
 	
-	public static String toCSV(PrincipalInfo p_principal, String p_timestamp) {
+	public static String toCSV(final PrincipalInfo p_principal, final String p_timestamp) {
 		if (null==p_principal)
 			return (p_timestamp!=null? p_timestamp:"")+",,";
 		

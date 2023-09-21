@@ -1,6 +1,8 @@
 
 package com.tibco.psg.emstools.pems.text;
 
+import java.io.PrintStream;
+
 import com.tibco.tibjms.admin.UserInfo;
 
 /**
@@ -8,15 +10,27 @@ import com.tibco.tibjms.admin.UserInfo;
  * objects into CSV (comma-separated-values) lines.
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class UserInfoFormat extends PrincipalInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private UserInfoFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
+	public static String CSVHeader(final boolean p_timestamp) {
 		return (p_timestamp? "Timestamp,":"")+CSVHeader("User");
 	}
 	
@@ -30,15 +44,15 @@ public class UserInfoFormat extends PrincipalInfoFormat {
 	 * @param p_header <code>true<code> if the header must be printed out, <code>false</code> otherwise.
 	 * @since 0.4
 	 */
-	public static void printCSV(UserInfo p_users[], boolean p_header, boolean p_timestamp) {
-		if (true==p_header)
-			System.out.println(CSVHeader(p_timestamp));
+	public static void printCSV(final PrintStream p_out, final UserInfo[] p_users, final boolean p_header, final boolean p_timestamp) {
+		if (p_header)
+			p_out.println(CSVHeader(p_timestamp));
 		
 		if (null!=p_users) {
-			String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
+			final String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
 			
 			for(int i=0;i<p_users.length;i++) {
-				System.out.println(toCSV(p_users[i], i_timestamp));
+				p_out.println(toCSV(p_users[i], i_timestamp));
 			}
 		}
 	}

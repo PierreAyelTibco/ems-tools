@@ -6,19 +6,31 @@ import com.tibco.tibjms.admin.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class ConsumerInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private ConsumerInfoFormat() {
+	}
+		
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
-		return (p_timestamp? "Timestamp,":"")+"Connection ID,CreateTime,Destination,Type,Pending Msg Count,Pending Msg Size,Selector,Durable,ID,Session ID,"+StatDataFormat.CSVHeader()+",Username";
+	public static String CSVHeader(final boolean p_timestamp) {
+		return (p_timestamp? "Timestamp,":"")+"Connection ID,CreateTime,Destination,Type,Pending Msg Count,Pending Msg Size,Selector,Durable,ID,Session ID,"+StatDataFormat.CSV_HEADER+",Username";
 	}
 	
-	public static String toCSV(ConsumerInfo p_consumer, String p_timestamp) {
+	public static String toCSV(final ConsumerInfo p_consumer, final String p_timestamp) {
 		if (null==p_consumer)
 			return (p_timestamp!=null? p_timestamp:"")+",,,,,,,,,"+StatDataFormat.toCSV(null)+",";
 		

@@ -6,15 +6,27 @@ import com.tibco.tibjms.admin.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.0.0
+ * @version 1.4.0
  */
 public class VersionInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private VersionInfoFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String toCSV(VersionInfo p_version) {
+	public static String toCSV(final VersionInfo p_version) {
 		if (null==p_version)
 			return "";
 		

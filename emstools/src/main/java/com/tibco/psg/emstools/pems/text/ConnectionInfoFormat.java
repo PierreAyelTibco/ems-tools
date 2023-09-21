@@ -1,6 +1,8 @@
 
 package com.tibco.psg.emstools.pems.text;
 
+import java.io.PrintStream;
+
 import com.tibco.tibjms.admin.*;
 
 /**
@@ -8,21 +10,33 @@ import com.tibco.tibjms.admin.*;
  * objects into CSV (comma-separated-values) lines.
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class ConnectionInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private ConnectionInfoFormat() {
+	}
+		
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
+	public static String CSVHeader(final boolean p_timestamp) {
 		return (p_timestamp? "Timestamp,":"")+"Connection ID,Username,Client Host,Client IP Address,Client URL"+
 		",Client ID,Client Type,Connection Type,EMS Client Version,Consumer Count,Producer Count,Session Count" + 
 		",SSLType,Start Time,Connection UpTime (ms),Uncommitted Count,Uncommitted Size";
 	}
 	
-	public static String toCSV(ConnectionInfo p_connection, String p_timestamp) {
+	public static String toCSV(final ConnectionInfo p_connection, final String p_timestamp) {
 		if (null==p_connection)
 			return (p_timestamp!=null? p_timestamp:"")+",,,,,,,,,,,,,,,,";
 
@@ -66,15 +80,15 @@ public class ConnectionInfoFormat {
 	 * If the list is <code>null</code> the document will display only the header line.
 	 * @param p_header <code>true<code> if the header must be printed out, <code>false</code> otherwise.
 	 */
-	public static void printCSV(ConnectionInfo p_connections[], boolean p_header, boolean p_timestamp) {
-		if (true==p_header)
-			System.out.println(ConnectionInfoFormat.CSVHeader(p_timestamp));
+	public static void printCSV(final PrintStream p_out, final ConnectionInfo[] p_connections, final boolean p_header, final boolean p_timestamp) {
+		if (p_header)
+			p_out.println(ConnectionInfoFormat.CSVHeader(p_timestamp));
 		
 		if (null!=p_connections) {
-			String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
+			final String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
 			
 			for(int i=0;i<p_connections.length;i++) {
-				System.out.println(ConnectionInfoFormat.toCSV(p_connections[i], i_timestamp));
+				p_out.println(ConnectionInfoFormat.toCSV(p_connections[i], i_timestamp));
 			}
 		}
 	}

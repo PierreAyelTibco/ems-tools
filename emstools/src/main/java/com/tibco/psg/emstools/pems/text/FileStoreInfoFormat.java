@@ -6,22 +6,34 @@ import com.tibco.tibjms.admin.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class FileStoreInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private FileStoreInfoFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
+	public static String CSVHeader(final boolean p_timestamp) {
 		return (p_timestamp? "Timestamp,":"")+"Name,FileName,FileSize,FileMinSize,FreeSpace,UsedSpace,InUsedSpace,NotInUseSpace"+
 				 ",Fragmentation,MsgBytes,MsgCount,SwappedBytes,SwappedCount,WriteRate,WriteUsage,AvgWriteTime"+
 				 ",DestDefrag,CRC,Sync,Trunc"; 
 	}
 	
 	@SuppressWarnings("deprecation")
-	public static String toCSV(String p_name, FileStoreInfo p_store, String p_timestamp) {
+	public static String toCSV(final String p_name, final FileStoreInfo p_store, final String p_timestamp) {
 		if (null==p_store)
 			return (p_timestamp!=null? p_timestamp:"")+",,,,,,,,,";
 		

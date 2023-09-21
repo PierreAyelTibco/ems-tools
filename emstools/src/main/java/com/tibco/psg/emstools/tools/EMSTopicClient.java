@@ -1,6 +1,8 @@
 
 package com.tibco.psg.emstools.tools;
 
+import java.io.PrintStream;
+
 import javax.jms.JMSException;
 import javax.jms.Topic;
 import javax.jms.TopicSession;
@@ -29,7 +31,7 @@ public class EMSTopicClient extends EMSClient {
 	 * <p>
 	 * @param p_args The command line arguments.
 	 */
-	public EMSTopicClient(String[] p_args) {
+	public EMSTopicClient(final String[] p_args) {
 		super();
 	}
 	
@@ -48,18 +50,17 @@ public class EMSTopicClient extends EMSClient {
 		
         if (null==getDestinationConfiguration().getTopicName() && null==getDestinationConfiguration().getTopicJNDIName()) { //1.3.3
         	logError("you must specify the topic name or its JNDI name");
-            //1.2.0 System.err.println("Error: must specify topic name");
-            usage();
+        	exitOnInvalidUsage();
         }
         
         //1.3.3
         if (null!=getDestinationConfiguration().getTopicJNDIName() && null==getConnectionConfiguration().getJNDIURL()) {
         	logError("you cannot find a topic by its JNDI name if you do not connect with the JNDI interface");
-        	usage();
+        	exitOnInvalidUsage();
         }
 	}
 	
-	public Topic getTopic(TopicSession p_session) throws JMSException, NamingException {
+	public Topic getTopic(final TopicSession p_session) throws JMSException, NamingException {
         //1.3.3
         if (null!=getDestinationConfiguration().getTopicJNDIName())
         	return (Topic) getJNDIContext().lookup(getDestinationConfiguration().getTopicJNDIName());
@@ -68,7 +69,7 @@ public class EMSTopicClient extends EMSClient {
 	}
 
 	@Override
-	public void usage() {
+	public void usage(final PrintStream p_out) {
 		// TODO Auto-generated method stub
 	}
 }

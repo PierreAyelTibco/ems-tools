@@ -6,65 +6,67 @@ import com.tibco.tibjms.admin.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.0.0
+ * @version 1.4.0
  */
 public class PermissionsFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private PermissionsFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader() {
-		return "Permissions";
-	}
+	public static final String CSV_HEADER = "Permissions";
 	
-	public static String toCSV(Permissions p_perm) {
+	private static final Object[] PERMISSIONS = new Object[] {
+		Permissions.BROWSE, "BROWSE",
+		Permissions.BROWSE_PERMISSION, "BROWSE_PERMISSION",
+		Permissions.CREATE, "CREATE",
+		Permissions.DELETE, "DELETE",
+		Permissions.DURABLE, "DURABLE",
+		Permissions.DURABLE_PERMISSION, "DURABLE_PERMISSION",
+		Permissions.MODIFY, "MODIFY",
+		Permissions.PUBLISH, "PUBLISH",
+		Permissions.PUBLISH_PERMISSION, "PUBLISH_PERMISSION",
+		Permissions.PURGE, "PURGE",
+		Permissions.RECEIVE, "RECEIVE",
+		Permissions.RECEIVE_PERMISSION, "RECEIVE_PERMISSION",
+		Permissions.SEND, "SEND",
+		Permissions.SEND_PERMISSION, "SEND_PERMISSION",
+		Permissions.SUBSCRIBE, "SUBSCRIBE",
+		Permissions.SUBSCRIBE_PERMISSION, "SUBSCRIBE_PERMISSION",
+		Permissions.USE_DURABLE, "USE_DURABLE",
+		Permissions.VIEW, "VIEW"
+	};
+	
+	public static String toCSV(final Permissions p_perm) {
 		if (null==p_perm)
 			return "";
 		
-		StringBuffer i_buffer = new StringBuffer();
+		final StringBuilder i_builder = new StringBuilder();
 		
-		 if (p_perm.hasPermission(Permissions.BROWSE))
-			i_buffer.append(",BROWSE");
-         if (p_perm.hasPermission(Permissions.BROWSE_PERMISSION))
-        	 i_buffer.append(",BROWSE_PERMISSION");
-         if (p_perm.hasPermission(Permissions.CREATE))
-        	 i_buffer.append(",CREATE");
-         if (p_perm.hasPermission(Permissions.DELETE))
-        	i_buffer.append(",DELETE");
-         if (p_perm.hasPermission(Permissions.DURABLE))
-        	 i_buffer.append(",DURABLE");
-         if (p_perm.hasPermission(Permissions.DURABLE_PERMISSION))
-        	 i_buffer.append(",DURABLE_PERMISSION");
-         if (p_perm.hasPermission(Permissions.MODIFY))
-        	 i_buffer.append(",MODIFY");
-         if (p_perm.hasPermission(Permissions.PUBLISH))
-        	 i_buffer.append(",PUBLISH");
-         if (p_perm.hasPermission(Permissions.PUBLISH_PERMISSION))
-        	 i_buffer.append(",PUBLISH_PERMISSION");
-         if (p_perm.hasPermission(Permissions.PURGE))
-        	 i_buffer.append(",PURGE");
-         if (p_perm.hasPermission(Permissions.RECEIVE))
-        	 i_buffer.append(",RECEIVE");
-         if (p_perm.hasPermission(Permissions.RECEIVE_PERMISSION))
-        	i_buffer.append(",RECEIVE_PERMISSION");
-         if (p_perm.hasPermission(Permissions.SEND))
-        	 i_buffer.append(",SEND");
-         if (p_perm.hasPermission(Permissions.SEND_PERMISSION))
-        	 i_buffer.append(",SEND_PERMISSION");
-         if (p_perm.hasPermission(Permissions.SUBSCRIBE))
-        	 i_buffer.append(",SUBSCRIBE");
-         if (p_perm.hasPermission(Permissions.SUBSCRIBE_PERMISSION))
-        	 i_buffer.append(",SUBSCRIBE_PERMISSION");
-         if (p_perm.hasPermission(Permissions.USE_DURABLE))
-        	 i_buffer.append(",USE_DURABLE");
-         if (p_perm.hasPermission(Permissions.VIEW))
-        	 i_buffer.append(",VIEW");
-         
-         String i_perms = i_buffer.toString();
-         if (i_perms.startsWith(",")) i_perms = i_perms.substring(1);
-
-		return "\""+i_perms+"\"";
+		for(int i=0 ; i<PERMISSIONS.length ; i+=2)
+			if (p_perm.hasPermission((long) PERMISSIONS[i])) {
+				
+				if (i_builder.length()>0)
+					i_builder.append(',');
+				
+				i_builder.append((String) PERMISSIONS[i+1]);
+			}
+		
+        i_builder.insert(0, '\"');
+        i_builder.append('\"');
+		return i_builder.toString();
 	}
 }
 

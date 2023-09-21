@@ -7,7 +7,7 @@ import java.text.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.0.0
+ * @version 1.4.0
  */
 public class TimeFormat {
 
@@ -15,13 +15,25 @@ public class TimeFormat {
 	/***  RUNTIME DATA  ******************************************************/
 	/*************************************************************************/
 	
-	public static SimpleDateFormat m_format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+	private static final SimpleDateFormat m_format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
+	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private TimeFormat() {
+	}
+	
 	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 	
-	public static String toCSV(long p_time) {
+	public static String toCSV(final long p_time) {
 		return m_format.format(new Date(p_time));
 	}
 }

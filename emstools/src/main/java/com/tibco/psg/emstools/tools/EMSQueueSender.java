@@ -3,7 +3,10 @@ package com.tibco.psg.emstools.tools;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Vector;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 import javax.jms.*;
 import javax.naming.NamingException;
@@ -12,7 +15,7 @@ import javax.naming.NamingException;
  * <p>
  * @author Richard Lawrence
  * @author Pierre Ayel
- * @version 1.3.3
+ * @version 1.4.0
  */
 public class EMSQueueSender extends EMSQueueClient {
     
@@ -37,25 +40,171 @@ public class EMSQueueSender extends EMSQueueClient {
 	 */
 	public static class pThread extends Thread {
 		
-		private EMSQueueSender m_sender;
+		private final EMSQueueSender m_sender;
 		
-		public pThread(int n, EMSQueueSender p_receiver) {
+		public pThread(final int n, final EMSQueueSender p_sender) {
 			super();
 			setName("QueueSender-Thread-"+((n<9)? "0":"")+n);
 			setDaemon(false);
-			m_sender = p_receiver;
+			m_sender = p_sender;
 		}
 		
+		@Override
 		public void run() {
 			try {
 				m_sender.start();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} 
+			catch (final Exception ex) {
+				m_sender.logError("Failed to start msg publisher: ".concat(ex.getMessage()));
 			}
 		}
-	};
+	}
 	
+	/**
+	 * A class containing a connection, session and queue sender created by this object.
+	 * <p>
+	 * @author Pierre Ayel
+	 * @since 1.3.3
+	 */
+	public class WorkSession extends Object {
+		
+		private QueueConnection m_connection;
+        private QueueSession m_session;
+        private Queue m_queue;
+        
+        /**
+    	 * Creates a new <code>WorkSession</code> object.
+    	 * <p>
+    	 * Exits if the connection fails.
+    	 */
+    	public WorkSession() throws JMSException, NamingException, IOException {
+            super();
+            
+            //*** CONNECT
+            try {
+                m_connection = createQueueConnection();
+            }
+            //1.2.0
+            catch (JMSException ex) {
+            	logError("failed to connect...");
+            	logError(ex);
+            	System.exit(EXIT_CODE_CONNECTION_ERROR);
+            }
+            
+            m_session = m_connection.createQueueSession(false, javax.jms.Session.AUTO_ACKNOWLEDGE);
+            
+            //1.3.3
+            m_queue = EMSQueueSender.this.getQueue(m_session);
+    	}
+    	
+		public QueueConnection getQueueConnection() {
+			return m_connection;
+		}
+		
+        public QueueSession getQueueSession() {
+        	return m_session;
+        }
+        
+        public Queue getQueue() {
+        	return m_queue;
+        }
+        
+    	/**
+    	 * Closes the queue sender.
+    	 * <p>
+    	 * @throws JMSException In case of JMSException.
+    	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
+    	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
+    	 */
+    	public void close() throws JMSException, NamingException, IOException {
+            
+        	//*** CLOSE JMS SESSION
+        	if (null!=m_session)
+        		try {
+    				logDebug("Closing session...");
+    				m_session.close();
+    			} 
+        		catch (final JMSException ex) {
+    				logError(ex);
+    			}
+        	
+        	//*** CLOSE JMS CONNECTION
+        	if (null!=m_connection)
+        		try {
+    				logDebug("Closing connection...");
+    				m_connection.close();
+    			} 
+        		catch (final JMSException ex) {
+    				logError(ex);
+    			}
+    	}
+   	}
+ 	
+	/**
+	 * A class containing a connection, session and queue sender created by this object.
+	 * <p>
+	 * @author Pierre Ayel
+	 * @since 1.3.3
+	 */
+	public class WorkSession_Sender extends WorkSession {
+		
+	    private QueueSender m_sender;
+        
+        /** Total number of message received. */
+        private long m_totalMsgs = 0;
+         
+        /**
+    	 * Creates a new <code>WorkSession_Sender</code> object.
+    	 * <p>
+    	 * Exits if the connection fails.
+    	 */
+    	public WorkSession_Sender() throws JMSException, NamingException, IOException {
+            super();
+            
+            m_sender = getQueueSession().createSender(this.getQueue());
+    	}
+    	
+        public QueueSender getQueueSender() {
+        	return m_sender;
+        }
+        
+        /**
+         * Gets the number of message sent so far.
+         */
+        public long getTotalMsgs() {
+        	return m_totalMsgs;
+        }
+        
+    	/**
+    	 * @throws InterruptedException 
+    	 * @since 1.2.0
+    	 */
+    	public void sendMessage(final TextMessage message, final int delMode) throws JMSException, InterruptedException {
+    		
+    	    // Set default Properties
+    	    message.setBooleanProperty("JMS_TIBCO_PRESERVE_UNDELIVERED", true);
+    	    
+    	    if (null==message.getJMSCorrelationID())
+    	    	message.setJMSCorrelationID(UUID.randomUUID().toString());
+    		
+    		/*
+    		 * Publish Request
+    		 * Set appropriate deliveryMode, Priority, TTL
+    		 */
+            m_sender.send(message, delMode, message.getJMSPriority(), message.getJMSExpiration());
+
+            //1.3.0
+            m_totalMsgs++;
+            
+           	logInfo(getTotalMsgs()+": Sent message: "+message.getJMSMessageID());
+
+            if (m_out_file!=null)
+            	saveMessage(message, "$MsgNotify$");
+
+   			Thread.sleep(m_delay_ms);
+    	}
+ 	}
+ 		
 	/*************************************************************************/
 	/***  CONSTRUCTORS  ******************************************************/
 	/*************************************************************************/
@@ -66,7 +215,7 @@ public class EMSQueueSender extends EMSQueueClient {
 	 * @param p_args The command line arguments.
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.
 	 */
-	public EMSQueueSender(String[] p_args) throws IOException {
+	public EMSQueueSender(final String[] p_args) throws IOException {
 		super();
 		
         parseArgs(p_args);
@@ -99,30 +248,16 @@ public class EMSQueueSender extends EMSQueueClient {
 	 * @throws JMSException In case of JMSException.
 	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
 	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
+	 * @throws InterruptedException 
 	 * @since 1.3.0
 	 */
-	public void start() throws JMSException, NamingException, IOException {
+	public void start() throws JMSException, NamingException, IOException, InterruptedException {
         
         //*** CONNECT, CREATE SESSION AND QUEUE SENDER
 		/* 1.3.2 */
-		pWorkSession_Sender i_work_session = init();
-        /*QueueConnection i_connection = null;
-        QueueSession i_session = null;
-        try {
-            i_connection = createQueueConnection();
-        }
-        //1.2.0
-        catch (JMSException ex) {
-        	logError("failed to connect...");
-        	logError(ex);
-        	System.exit(EXIT_CODE_CONNECTION_ERROR);
-        }*/
+		final WorkSession_Sender i_work_session = init();
         
         try{
-            /*i_session = i_connection.createQueueSession(false, javax.jms.Session.AUTO_ACKNOWLEDGE);
-            Queue i_queue = i_session.createQueue(m_queue_name);
-            QueueSender i_sender = i_session.createSender(i_queue);*/
-            
             //1.3.0
 			//*** WAIT FOR 1ST MSG ON TRIGGER TOPIC BEFORE STARTING PUBLISHING/SENDING LOOP
            	waitOnTriggerTopic();	
@@ -130,10 +265,10 @@ public class EMSQueueSender extends EMSQueueClient {
             //1.2.0
             logInfo("Sending on queue '"+i_work_session.getQueue().getQueueName()+"'");
             
-            if (m_in_files.size()==1 && m_in_files.firstElement().isDirectory())
+            if (m_in_files.size()==1 && m_in_files.get(0).isDirectory())
             	while (i_work_session.getTotalMsgs()<m_count) { //1.3.0
             		
-            		for(File i_file : m_in_files.firstElement().listFiles()) {
+            		for(File i_file : m_in_files.get(0).listFiles()) {
             			
             			//1.3.0
             			if (i_work_session.getTotalMsgs()>=m_count) break;
@@ -197,50 +332,46 @@ public class EMSQueueSender extends EMSQueueClient {
 	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
 	 * @since 1.3.0
 	 */
-	public pWorkSession_Sender init() throws JMSException, NamingException, IOException {
-		return new pWorkSession_Sender(this);
+	public WorkSession_Sender init() throws JMSException, NamingException, IOException {
+		return new WorkSession_Sender();
 	}
 	
     /**
      * Prints the command line usage on standard error.
      */
-    public void usage() {
-        System.err.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
-        System.err.println("");
-        System.err.println("   where options are:");
-        System.err.println("");
-        System.err.println("  -server     <serverURL> - EMS server URL, default is local server");
-        System.err.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
-        System.err.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
-        System.err.println("  -user       <user name> - user name, default is null");
-        System.err.println("  -password   <password>  - password, default is null");
-        System.err.println("  -queue      <name>      - The Queue full name");
-        System.err.println("  -jndi_queue <name>      - The Queue JNDI name");
-        System.err.println("  -infile     <file name> - The file/folder that contains the message(s) to send");
-        //System.err.println("                             You can repeat this parameter multiple time to send multiple files/folders");
-        System.err.println("  -log        <file name> - The output log/folder file name");
-        System.err.println("  -count      <count>     - Number of messages to send, default 1");
-        System.err.println("  -delay      <millisecs> - Delay between messages, default 1000");
-        
-        System.exit(EXIT_CODE_INVALID_USAGE);
+	@Override
+    public void usage(final PrintStream p_out) {
+        p_out.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
+        p_out.println("");
+        p_out.println("   where options are:");
+        p_out.println("");
+        p_out.println("  -server     <serverURL> - EMS server URL, default is local server");
+        p_out.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
+        p_out.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
+        p_out.println("  -user       <user name> - user name, default is null");
+        p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("  -queue      <name>      - The Queue full name");
+        p_out.println("  -jndi_queue <name>      - The Queue JNDI name");
+        p_out.println("  -infile     <file name> - The file/folder that contains the message(s) to send");
+        //p_out.println("                             You can repeat this parameter multiple time to send multiple files/folders");
+        p_out.println("  -log        <file name> - The output log/folder file name");
+        p_out.println("  -count      <count>     - Number of messages to send, default 1");
+        p_out.println("  -delay      <millisecs> - Delay between messages, default 1000");
     }
 
 	/**************************************************************************/
 	/***  MAIN METHOD  ********************************************************/
 	/**************************************************************************/
 
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
     	try {
-    		//1.3.0
-	        //new EMSQueueSender(args);
-    		
-    		EMSQueueSender i_tool = new EMSQueueSender(args);
+    		final EMSQueueSender i_tool = new EMSQueueSender(args);
         	
         	if (i_tool.getTestThreadCount()>1) {
-        		Vector<pThread> i_threads = new Vector<pThread>(i_tool.getTestThreadCount());
+        		final List<pThread> i_threads = new ArrayList<>(i_tool.getTestThreadCount());
         		for(int i=0;i<i_tool.getTestThreadCount();i++) {
         			i_tool.logInfo("Starting new thread ("+(1+i)+"/"+i_tool.getTestThreadCount()+")...");
-        			pThread i_thread = new pThread(i+1, new EMSQueueSender(args));
+        			final pThread i_thread = new pThread(i+1, new EMSQueueSender(args));
         			i_thread.start();
         			i_threads.add(i_thread);
         		}
@@ -252,7 +383,7 @@ public class EMSQueueSender extends EMSQueueClient {
         	
 	        System.exit(EXIT_CODE_SUCCESS);
 	    }
-	    catch (Throwable ex) {
+	    catch (final Throwable ex) {
 	    	ex.printStackTrace();
 	    	System.exit(EXIT_CODE_UNKNOWN_ERROR);
 	    }

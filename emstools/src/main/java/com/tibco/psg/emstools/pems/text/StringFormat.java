@@ -9,10 +9,22 @@ package com.tibco.psg.emstools.pems.text;
 public class StringFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private StringFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String toCSV(String p_str) {
+	public static String toCSV(final String p_str) {
 		if (null!=p_str) {
 			if (p_str.indexOf(',')>=0)
 				return "\""+p_str+"\"";
@@ -21,9 +33,9 @@ public class StringFormat {
 		return "";
 	}
 	
-	public static String toCSV(String p_str[]) {
+	public static String toCSV(final String[] p_str) {
 		if (null!=p_str && p_str.length>0) {
-			StringBuffer i_buffer = new StringBuffer("\"");
+			final StringBuilder i_buffer = new StringBuilder("\"");
 			
 			for(int i=0;i<p_str.length;i++) {
 				if (i>0)

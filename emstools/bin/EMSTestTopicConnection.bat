@@ -23,7 +23,7 @@ set CP=%CP%;%EMSTOOLS_LIB%\slf4j-simple-1.5.2.jar
 
 rem #########################################################################
 
-java -cp %CP% com.tibco.tools.EMSTestTopicConnection %*
+java -cp %CP% com.tibco.psg.emstools.tools.EMSTestTopicConnection %*
 
 :end
 endlocal

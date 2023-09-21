@@ -1,26 +1,40 @@
 
 package com.tibco.psg.emstools.pems.text;
 
+import java.io.PrintStream;
+
 import com.tibco.tibjms.admin.*;
 
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class ConnectionFactoryInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private ConnectionFactoryInfoFormat() {
+	}
+		
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
+	public static String CSVHeader(final boolean p_timestamp) {
 		return (p_timestamp? "Timestamp,":"")+"Client ID,Connect Attempt Count,Connect Attempt Delay,Connect Attempt Timeout,"+
 		"Type,JNDI Names,Multicast Daemon,Multicast,Load Balancing Metric,Params,"+
 		"Reconnect Attempt Count,Reconnect Attempt Delay,Reconnect Attempt Timeout,URL,XAType,isLoadBalanced";
 	}
 	
-	public static String toCSV(ConnectionFactoryInfo p_factory, String p_timestamp) {
+	public static String toCSV(final ConnectionFactoryInfo p_factory, final String p_timestamp) {
 		if (null==p_factory)
 			return (p_timestamp!=null? p_timestamp:"")+",,,,,,,,,,,";
 
@@ -43,15 +57,15 @@ public class ConnectionFactoryInfoFormat {
 	}
 	
 	/** @since 1.3.7 */
-	public static void printCSV(ConnectionFactoryInfo p_factories[], boolean p_header, boolean p_timestamp) {
+	public static void printCSV(final PrintStream p_out, final ConnectionFactoryInfo[] p_factories, final boolean p_header, final boolean p_timestamp) {
 		if (p_header)
-			System.out.println(ConnectionFactoryInfoFormat.CSVHeader(p_timestamp));
+			p_out.println(ConnectionFactoryInfoFormat.CSVHeader(p_timestamp));
 		
 		if (null!=p_factories) {
-			String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
+			final String i_timestamp = p_timestamp? StringFormat.timestamp() : null;
 			
 			for(int i=0;i<p_factories.length;i++) {
-				System.out.println(ConnectionFactoryInfoFormat.toCSV(p_factories[i], i_timestamp));
+				p_out.println(ConnectionFactoryInfoFormat.toCSV(p_factories[i], i_timestamp));
 			}
 		}
 	}

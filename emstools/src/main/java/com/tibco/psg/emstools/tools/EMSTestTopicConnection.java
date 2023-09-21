@@ -1,6 +1,8 @@
 
 package com.tibco.psg.emstools.tools;
 
+import java.io.PrintStream;
+
 import javax.jms.*;
 
 /**
@@ -28,7 +30,7 @@ public class EMSTestTopicConnection extends EMSClient {
 	 * @param args The command line arguments.
 	 * @throws Throwable
 	 */
-	public EMSTestTopicConnection(String[] args) throws Throwable {
+	public EMSTestTopicConnection(final String[] args) throws Throwable {
 		super();
 		
         parseArgs(args);
@@ -51,7 +53,7 @@ public class EMSTestTopicConnection extends EMSClient {
             logInfo("connected successfully");
         }
         //1.2.0
-        catch (JMSException ex) {
+        catch (final JMSException ex) {
         	logError("failed to connect...");
         	logError(ex);
         	System.exit(EXIT_CODE_CONNECTION_ERROR);
@@ -62,7 +64,8 @@ public class EMSTestTopicConnection extends EMSClient {
 				try {
 					logDebug("closing session...");
 					i_session.close();
-				} catch (JMSException e) {
+				} 
+        		catch (final JMSException e) {
 					logError(e);
 				}
         	
@@ -71,7 +74,8 @@ public class EMSTestTopicConnection extends EMSClient {
 				try {
 					logDebug("closing connection...");
 					i_connection.close();
-				} catch (JMSException e) {
+				} 
+        		catch (final JMSException e) {
 					logError(e);
 				}
         }
@@ -81,29 +85,28 @@ public class EMSTestTopicConnection extends EMSClient {
 	/***  MAIN METHOD  ********************************************************/
 	/**************************************************************************/
     
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
         try {
         	new EMSTestTopicConnection(args);
         	System.exit(EXIT_CODE_SUCCESS);
         }
-        catch (Throwable ex) {
+        catch (final Throwable ex) {
         	ex.printStackTrace();
         	System.exit(EXIT_CODE_UNKNOWN_ERROR);
         }
     }
 
-    public void usage() {
-        System.err.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
-        System.err.println("");
-        System.err.println("   where options are:");
-        System.err.println("");
-        System.err.println("  -server    <server URL> - EMS server URL ");
-        System.err.println("  -provider  <JNDI URL>   - JNDI server URL ");
-        System.err.println("  -factory   <factory>    - JNDI factory name, default Topic/QueueConnectionFactory");
-        System.err.println("  -user      <user name>  - user name, default is null");
-        System.err.println("  -password  <password>   - password, default is null");
-        
-        System.exit(EXIT_CODE_INVALID_USAGE);
+    @Override
+    public void usage(final PrintStream p_out) {
+        p_out.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
+        p_out.println("");
+        p_out.println("   where options are:");
+        p_out.println("");
+        p_out.println("  -server    <server URL> - EMS server URL ");
+        p_out.println("  -provider  <JNDI URL>   - JNDI server URL ");
+        p_out.println("  -factory   <factory>    - JNDI factory name, default Topic/QueueConnectionFactory");
+        p_out.println("  -user      <user name>  - user name, default is null");
+        p_out.println("  -password  <password>   - password, default is null");
     }
 }
 

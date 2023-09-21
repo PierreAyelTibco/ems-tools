@@ -9,12 +9,12 @@ import com.tibco.tibjms.TibjmsQueueConnectionFactory;
 import com.tibco.tibems.ufo.*;
 
 import java.io.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -27,9 +27,9 @@ import java.util.Vector;
  * <p>
  * @author Richard Lawrence (TIL Test Harness superclass)
  * @author Pierre Ayel
- * @version 1.3.8
+ * @version 1.4.0
  */
-public abstract class EMSClient extends Object implements Serializable, ExceptionListener {
+public abstract class EMSClient extends BaseObject implements Serializable, ExceptionListener {
 	
 	/*************************************************************************/
 	/***  DEFINITIONS  *******************************************************/
@@ -38,21 +38,23 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     /** Unique ID for serialisation. */
 	private static final long serialVersionUID = 4123566618083592853L;
 
-	/** @since 1.3.0 */
-	private static final String TRACE_DEBUG = " [DEBUG] ";
-	private static final String TRACE_WARNING = " [WARN] ";
-	private static final String TRACE_INFO = " [INFO] ";
-	private static final String TRACE_ERROR = " [ERROR] ";
-	
 	/*************************************************************************/
 	/***  SUB-CLASSES  *******************************************************/
 	/*************************************************************************/
 
 	/** 
-	 * @since 1.3.3 
-	 * @version 1.3.7
+	 * <p>
+	 * @since 1.3.3
+	 * @version 1.4.0 
 	 */
-	public static class ConnectionConfiguration extends Object {
+	public static class ConnectionConfiguration extends Object implements Serializable {
+
+		/*************************************************************************/
+		/***  DEFINITIONS  *******************************************************/
+		/*************************************************************************/
+		
+	    /** Unique ID for serialisation. */
+		private static final long serialVersionUID = -9138881146466661105L;
 
 		/*************************************************************************/
 		/***  RUNTIME DATA  ******************************************************/
@@ -134,7 +136,8 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	    }
 	    
 	    public InitialContext createJNDIContext() throws NamingException {
-		    Hashtable<Object,Object> i_env = new Hashtable<Object,Object>();
+	    	
+		    final Hashtable<Object,Object> i_env = new Hashtable<>();
 		    i_env.put(Context.INITIAL_CONTEXT_FACTORY, m_provider_factory);
 		    i_env.put(Context.PROVIDER_URL, m_provider_url);
 	
@@ -154,10 +157,21 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 		    
 		    return new InitialContext(i_env);
 	    }
-	};
+	}
 	
-	/** @since 1.3.3 */
-	public static class SSLConfiguration extends Object {
+	/** 
+	 * <p>
+	 * @since 1.3.3
+	 * @version 1.4.0 
+	 */
+	public static class SSLConfiguration extends Object implements Serializable {
+
+		/*************************************************************************/
+		/***  DEFINITIONS  *******************************************************/
+		/*************************************************************************/
+		
+	    /** Unique ID for serialisation. */
+		private static final long serialVersionUID = 193515875843759560L;
 
 		/*************************************************************************/
 		/***  RUNTIME DATA  ******************************************************/
@@ -167,7 +181,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	    private String 				m_ssl_identity;
 	    private String 				m_ssl_key;
 	    private String 				m_ssl_password;
-	    private Vector<String> 		m_ssl_trustedcerts;
+	    private List<String> 		m_ssl_trustedcerts;
 	    private String 				m_ssl_vendor;
 	    private String 				m_ssl_ciphers;
 	    private String 				m_ssl_hostname;
@@ -184,7 +198,8 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	     */
 	    @SuppressWarnings({ "unchecked", "rawtypes" })
 		private HashMap createFactoryProperties() {
-	    	HashMap i_env = new HashMap();
+	    	
+	    	final HashMap i_env = new HashMap();
 	    	
 	    	if (m_ssl_enabled) {
 	    		if (m_ssl_identity!=null && !m_ssl_identity.equals("")) {
@@ -196,9 +211,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	    		}
 
 	    		//fixed in 1.2.1
-				if (m_ssl_trustedcerts!=null) {// && m_ssl_trustedcerts.equals("")) {
-					//Vector i_trusted = new Vector(1);
-					//i_trusted.add(m_ssl_trustedcerts);
+				if (m_ssl_trustedcerts!=null) {
 					i_env.put(com.tibco.tibjms.TibjmsSSL.TRUSTED_CERTIFICATES, m_ssl_trustedcerts);
 				}
 
@@ -219,11 +232,22 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	    	
 	    	return i_env;
 	    }
-	}; 
+	}
 	
-	/** @since 1.3.3 */
-	public static class DestinationConfiguration extends Object {
+	/** 
+	 * <p>
+	 * @since 1.3.3
+	 * @version 1.4.0 
+	 */
+	public static class DestinationConfiguration extends Object implements Serializable {
 		
+		/*************************************************************************/
+		/***  DEFINITIONS  *******************************************************/
+		/*************************************************************************/
+		
+	    /** Unique ID for serialisation. */
+		private static final long serialVersionUID = -4597661906160479212L;
+
 		/*************************************************************************/
 		/***  RUNTIME DATA  ******************************************************/
 		/*************************************************************************/
@@ -288,7 +312,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	    	return m_selector;
 	    }
 	    
-	};
+	}
 	
 	/*************************************************************************/
 	/***  RUNTIME DATA  ******************************************************/
@@ -297,11 +321,8 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	/** @since 1.3.3 */
 	private ConnectionConfiguration m_config_connection = new ConnectionConfiguration();
 	
-	/** TIBCO EMS Connection parameters. */
-	
-    
     //1.1.0
-    protected Vector<File> 		m_in_files = new Vector<File>(1);
+    protected List<File> 		m_in_files = new ArrayList<File>(1);
     
     /**
      * If multiple file names have been provided in the command line, this member is
@@ -318,10 +339,10 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     private PrintStream 		m_out_pstream;
 
     /** @since 1.3.3 */
-    private DestinationConfiguration m_config_destination = new DestinationConfiguration();    
+    private final DestinationConfiguration m_config_destination = new DestinationConfiguration();    
     
     /** Default message text data to send. */ 
-    protected String      		m_data = "message"+'\r'+'\n'+"line2";
+    protected String      m_data = "message\r\nline2";
     
     /** Maximum number of message to send or receive (if 0, there is no limit; default value is <code>1</code>). */
     protected int				m_count = 1;
@@ -334,13 +355,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     
     protected String 			m_replyTo;
     
-    /**
-     * Lists of JMS property names to remove from the request message.
-     * //removed in 1.2.0
-     */
-    //protected Vector<String> 	m_removeJMSProperties;
-    
-    /**
+     /**
      * Indicates if MapMessage should be written as unmapped (default is <code>true</code>).
      */
     protected boolean 			m_unmapMapMsgs = true;
@@ -350,7 +365,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * <p>
      * @since 1.3.3
      */
-    private SSLConfiguration m_config_ssl = new SSLConfiguration();
+    private final SSLConfiguration m_config_ssl = new SSLConfiguration();
     
     /** @since 1.2.0 */
     public static final int EXIT_CODE_INVALID_USAGE = -2;
@@ -367,19 +382,13 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     /** @since 1.2.0 */
     public static final int EXIT_CODE_UNKNOWN_ERROR = -3;
     
-    /** @since 1.2.0 */
-    private SimpleDateFormat m_dateformat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss (SSS'ms')");
-    
-    /** @since 1.2.0 */
-    private boolean m_flag_debug = false;
-    
     /**
      * Lists of system properties to set before connecting (if the property has currently no value).
      * <p> 
      * @since 1.2.0 
      * @see #setSystemProperties()
      */
-    private Hashtable<String,String> m_data_system_properties = new Hashtable<String,String>();
+    private final HashMap<String,String> m_data_system_properties = new HashMap<>();
 
     /**
      * Lists of command line option and the corresponding system property name to store 
@@ -387,9 +396,9 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * <p> 
      * @since 1.2.0 
      */
-    private static final Hashtable<String,String> m_data_cmdline_system_properties = new Hashtable<String,String>();
+    private static final HashMap<String,String> m_data_cmdline_system_properties = new HashMap<>();
 
-     protected boolean m_flag_reply = true; 
+    protected boolean m_flag_reply = true; 
     
     /** @since 1.3.0 */
     private TopicConnection m_topic_connection;
@@ -413,7 +422,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 	    }
 		
 		@Override
-		public void usage() {
+		public void usage(final PrintStream p_out) {
 		}
     };
     
@@ -458,26 +467,10 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * @since 1.3.0
      * @see #getArgs();
      */
-    private String m_data_params[];
+    private String[] m_data_params;
     
     /** @since 1.3.0 */
     private Properties m_data_properties;
-    
-    /** 
-     * Log4j Logger
-     * <p>
-     * @since 1.3.0 
-     */
-	private org.apache.log4j.Logger m_logger = org.apache.log4j.Logger.getLogger(
-		System.getProperty(getClass().getName()+".logger", "emstools.logger")
-	);
-	
-	/** 
-	 * Indicates if we use log4j or not (default is <code>false</code>).
-	 * <p>
-	 * @since 1.3.0 
-	 */
-	private boolean m_flag_log4j = false;
     
 	/*************************************************************************/
 	/***  STATIC INITIALISATION  *********************************************/
@@ -513,7 +506,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     	//1.3.8
     	Tibjms.setExceptionOnFTSwitch(false);
     	Tibjms.setExceptionOnFTEvents(true);
-    };
+    }
     
 	/*************************************************************************/
 	/***  CONSTRUCTORS  ******************************************************/
@@ -531,6 +524,9 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     	m_data_system_properties.put(Tibjms.PROP_FT_SWITCH_EXCEPTION, "true");
     	m_data_system_properties.put(Tibjms.PROP_CONNECT_ATTEMPTS, "10,500");
     	m_data_system_properties.put(Tibjms.PROP_RECONNECT_ATTEMPTS, "10,500");
+    	
+    	//1.4.0
+    	setSharedTrace(m_data_shared_client);
     }
 
 	/*************************************************************************/
@@ -655,8 +651,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 		}
 		else {
 			logError("You must specify provider or server URL");
-			//1.2.0:System.err.println("Error: must specify provider or server URL");
-	        usage();
+			exitOnInvalidUsage();
 		}
 	
 		//*** SETUP SECURITY
@@ -667,7 +662,6 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 			if (i_factory instanceof TibjmsQueueConnectionFactory)
 				((TibjmsQueueConnectionFactory)i_factory).setClientID(m_config_connection.m_data_factory_clientid);
 		
-		//1.2.0 return i_factory.createTopicConnection(m_username, m_password);
 		TopicConnection i_result = 
 			(null!=m_ufo_topic_connection_factory)? 
 				m_ufo_topic_connection_factory.createTopicConnection(m_config_connection.m_username,  m_config_connection.m_password) : 
@@ -687,9 +681,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 				logWarning(ex, "Failed to set connection client ID");
 			}
 		
-		traceConnectionMetadata(i_result);
-		if (isDebugEnabled())
-			logDebug("connection client ID: " + i_result.getClientID());
+		EMSUtil.traceConnectionMetadata(this, i_result);
 		
 		return m_topic_connection = i_result;
     }
@@ -707,8 +699,9 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 			try {
 				logInfo("Closing topic connection...");
 				m_topic_connection.close();
-			} catch (JMSException e) {
-				logError(e);
+			} 
+    		catch (final JMSException ex) {
+				logError(ex);
 			}
     	m_topic_connection = null;
     }
@@ -775,8 +768,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 		}
 		else {
 			logError("You must specify provider or server URL");
-			//1.2.0: System.err.println("Error: must specify provider or server URL");
-	        usage();
+			exitOnInvalidUsage();
 		}
 		
 		//*** SETUP SECURITY
@@ -791,7 +783,6 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 					((TibjmsQueueConnectionFactory)i_factory).setClientID(m_config_connection.m_data_factory_clientid);
 			}
 	
-		//1.2.0 return i_factory.createQueueConnection(m_username, m_password);
 		QueueConnection i_result = 
 			(null!=m_ufo_queue_connection_factory)? 
 				m_ufo_queue_connection_factory.createQueueConnection(m_config_connection.m_username,  m_config_connection.m_password) : 
@@ -807,13 +798,11 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 			try {
 				i_result.setClientID(m_config_connection.m_data_clientid);
 			}
-			catch (JMSException ex) {
+			catch (final JMSException ex) {
 				logWarning(ex, "Failed to set connection client ID");
 			}
 		
-		traceConnectionMetadata(i_result);
-		if (isDebugEnabled())
-			logDebug("connection client ID: " + i_result.getClientID());
+		EMSUtil.traceConnectionMetadata(this, i_result);
 		
 		return m_queue_connection = i_result;
     }
@@ -831,37 +820,11 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 			try {
 				logInfo("Closing queue connection...");
 				m_queue_connection.close();
-			} catch (JMSException e) {
-				logError(e);
+			} 
+    		catch (final JMSException ex) {
+				logError(ex);
 			}
     	m_queue_connection = null;
-    }
-    
-    /**
-     * @throws JMSException 
-     * @since 1.2.0
-     */
-    private void traceConnectionMetadata(Connection p_connection) throws JMSException {
-    	if (isDebugEnabled()) {
-			ConnectionMetaData i_meta = p_connection.getMetaData();
-			if (null==i_meta)
-				logDebug("No connection metadata");
-			else {
-				logDebug("Connection metadata:");
-				logDebug("  JMS Version: " + i_meta.getJMSVersion());
-				logDebug("  JMS Major Version: " + i_meta.getJMSMajorVersion());
-				logDebug("  JMS Minor Version: " + i_meta.getJMSMinorVersion());
-				logDebug("  Provider: " + i_meta.getJMSProviderName());
-				logDebug("  Provider Version: " + i_meta.getProviderVersion());
-				logDebug("  Provider Major Version: " + i_meta.getProviderMajorVersion());
-				logDebug("  Provider Minor Version: " + i_meta.getProviderMinorVersion());
-				logDebug("  Provider JMSX Property Names: ");
-				Enumeration<?> e = i_meta.getJMSXPropertyNames();
-				if (null!=e)
-					while(e.hasMoreElements())
-						logDebug("    " + e.nextElement());
-			}
-		}
     }
     
     /**
@@ -916,14 +879,14 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * @param p_msg The message (cannot be <code>null</code>).
      * @param p_header A string line to write before the message details (cannot be <code>null</code>).
      */
-    public void saveMessage(Message p_msg, String p_header) {
+    public void saveMessage(final Message p_msg, final String p_header) {
     	
     	//1.2.0
     	File i_out_file = m_out_file;
     	
     	try {
     		if (p_msg instanceof MapMessage && m_unmapMapMsgs==true) {
-    			byte i_bytes[] = ((MapMessage)p_msg).getBytes("message_bytes");
+    			final byte[] i_bytes = ((MapMessage)p_msg).getBytes("message_bytes");
 
     			if (null!=i_bytes) {
     				saveMessage(Tibjms.createFromBytes(i_bytes), p_header);
@@ -935,7 +898,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     			
     			//1.2.0
     			if (m_out_file.isDirectory() && m_out_file.exists()) {
-    				File i_folder = new File(m_out_file, toFilename(p_msg.getJMSDestination().toString()));
+    				final File i_folder = new File(m_out_file, toFilename(p_msg.getJMSDestination().toString()));
     				i_folder.mkdir();
     				
     				i_out_file = new File(i_folder, toFilename(p_msg.getJMSMessageID())+".msg");
@@ -994,23 +957,23 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 		    	m_out_pstream.println(innerMapMsg.toString());
 		    } 
 		    else if (p_msg instanceof BytesMessage) {
-		    	BytesMessage  bytesMsg = (BytesMessage) p_msg;
+		    	final BytesMessage  bytesMsg = (BytesMessage) p_msg;
 		    	bytesMsg.reset();
 		    	long s = bytesMsg.getBodyLength();
 		    	if (s > 1000) {
 				    System.err.println("Warning: Bytes message limited to 1000 bytes");
 				    s=1000;
 				}
-				byte[] b = new byte[(int)s];
+				final byte[] b = new byte[(int)s];
 				bytesMsg.readBytes(b,(int)s);
 				m_out_pstream.println(dumpBytes(b));
 		    }
 		    else if (p_msg instanceof StreamMessage) {
-				StreamMessage  streamMsg = (StreamMessage) p_msg;
+				final StreamMessage  streamMsg = (StreamMessage) p_msg;
 				m_out_pstream.println(streamMsg.toString());
 		    }
 		    else if (p_msg instanceof ObjectMessage) {
-				ObjectMessage  objectMsg = (ObjectMessage) p_msg;
+				final ObjectMessage  objectMsg = (ObjectMessage) p_msg;
 				m_out_pstream.println(objectMsg.toString());
 		    }
 	
@@ -1021,7 +984,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 		    //1.2.0
 		    m_out_pstream.flush();
 		}
-		catch(Exception ex) {
+		catch (final Exception ex) {
 			//1.2.0
 			System.err.println("Error: failed to write message to file: " + ((null!=i_out_file)? i_out_file.getAbsolutePath() : "null"));
 			
@@ -1035,7 +998,8 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 				m_out_pstream.close();
 				try {
 					m_out_fstream.close();
-				} catch (IOException ex) {
+				} 
+				catch (final IOException ex) {
 					System.err.println("Error: failed to close message file: " + ((null!=i_out_file)? i_out_file.getAbsolutePath() : "null"));
 				    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
 				}
@@ -1046,74 +1010,19 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     	}
     } 
 
-    public void loadMessage(TextMessage msg) {
-    	//1.2.0
-
-		//1.1.0
-		File f = m_in_files.elementAt(m_in_files_index);
+    public void loadMessage(final TextMessage msg) {
+		final File f = m_in_files.get(m_in_files_index);
 		m_in_files_index++;
 		if (m_in_files_index>=m_in_files.size())
 			m_in_files_index = 0;
 
 		loadMessage(msg, f);
-		/*
-    	try {
-    		//1.1.0
-    		File f = m_in_files.elementAt(m_in_files_index);
-    		m_in_files_index++;
-    		if (m_in_files_index>=m_in_files.size())
-    			m_in_files_index = 0;
-    		
-    		//File f = new File(infileName);
-    		BufferedReader d = new BufferedReader(new FileReader(f));
-    		String l;
-    		StringBuffer t = new StringBuffer();
-    		boolean first = true;
-    		while ((l = d.readLine()) != null) {
-				if (l.startsWith("$MsgHeader$")) {
-				    while ((l = d.readLine()) != null) {
-						if (l.startsWith("$MsgProperties$")) {
-						    while ((l = d.readLine()) != null) {
-								if (l.startsWith("$MsgBody$")) {
-								    while ((l = d.readLine()) != null) {
-								    	if (l.startsWith("$MsgEnd$"))
-								    		break;
-				
-								    	if (!first)
-								    		t.append('\n');
-								    	t.append(l);
-								    	first = false;
-								    }
-								    msg.setText(t.toString());
-								    break;
-								}
-								else {
-								    setMsgProp(l,msg);
-								}
-						    }
-						}
-						else {
-						    setJMSMsgProp(l,msg);
-						}
-				    }
-				}
-    		}
-    		d.close();
-    	}
-    	catch(JMSException ex) {
-    		System.err.println("JMSException: "+ex.getMessage());
-    		return ;
-    	}
-    	catch(IOException ie) {
-    		System.err.println("JavaIOException: "+ie.getMessage());
-    		return ;
-    	}*/
     } 
     
     /**
      * @since 1.2.0
      */
-    public void loadMessage(TextMessage msg, File p_file) {
+    public void loadMessage(final TextMessage msg, final File p_file) {
     	
     	BufferedReader d = null;
     	try {
@@ -1153,38 +1062,8 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     		}
     		
 			msg.setText(t.toString());
-								    
-    		/*while ((l = d.readLine()) != null) {
-				if (l.startsWith("$MsgHeader$")) {
-				    while ((l = d.readLine()) != null) {
-						if (l.startsWith("$MsgProperties$")) {
-						    while ((l = d.readLine()) != null) {
-								if (l.startsWith("$MsgBody$")) {
-								    while ((l = d.readLine()) != null) {
-								    	if (l.startsWith("$MsgEnd$"))
-								    		break;
-				
-								    	if (!first)
-								    		t.append('\n');
-								    	t.append(l);
-								    	first = false;
-								    }
-								    msg.setText(t.toString());
-								    break;
-								}
-								else {
-								    setMsgProp(l,msg);
-								}
-						    }
-						}
-						else {
-						    setJMSMsgProp(l,msg);
-						}
-				    }
-				}
-    		}*/
     	}
-    	catch(Exception ex) {
+    	catch (final Exception ex) {
 			System.err.println("Error: failed to read message from file: " + p_file.getAbsolutePath());
 		    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
 		    ex.printStackTrace();
@@ -1194,14 +1073,15 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     		if (null!=d)
 				try {
 					d.close();
-				} catch (IOException ex) {
+				} 
+    			catch (final IOException ex) {
 					System.err.println("Error: failed to close file: " + p_file.getAbsolutePath());
 				    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
 				}
     	}
     } 
     
-    public void setJMSMsgProp(String ps, TextMessage m) {
+    public void setJMSMsgProp(final String ps, final TextMessage m) {
     	try {
 		    int i = ps.indexOf('=');
 		    if (i > 0) {
@@ -1232,7 +1112,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 				    System.err.println("Warning: Unsupported JMS property: "+p);
 		    }
 		}
-		catch(JMSException ex) {
+		catch (final JMSException ex) {
 			//1.2.0
 			System.err.println("Error: failed to set message data...");
 		    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
@@ -1242,7 +1122,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 		}
     }
     
-    public void setMsgProp(String ps, TextMessage m) {
+    public void setMsgProp(final String ps, final TextMessage m) {
     	try {
 		    int i = ps.indexOf('=');
 		    if (i > 0) {
@@ -1257,31 +1137,31 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
 				}
 		    }
     	}
-    	catch(JMSException ex) {
-    		System.err.println("JMSException: "+ex.getMessage());
+    	catch(final JMSException ex) {
+    		System.err.println("JMSException: ".concat(ex.getMessage()));
     		return ;
     	}
     }
 
-    public abstract void usage();
+    public abstract void usage(PrintStream p_out);
     
     /** 
      * <p>
      * @throws IOException If one command line parameter uses a file and the file cannot be read.
      * @since 1.3.0 
      */
-    public void parseArgs(Properties p_props) throws IOException {
+    public void parseArgs(final Properties p_props) throws IOException {
     	
-    	final ArrayList<String> i_args = new ArrayList<String>();
+    	final ArrayList<String> i_args = new ArrayList<>();
     	
     	for(Enumeration<Object> e = p_props.keys() ; e.hasMoreElements() ; ) {
-    		String i_name = e.nextElement().toString();
+    		final String i_name = e.nextElement().toString();
     		
     		if (i_name.equals("emsclient.propfile")) continue;
     		
     		if (i_name.startsWith("emsclient.")) {
     			
-    			String i_value = p_props.getProperty(i_name);
+    			final String i_value = p_props.getProperty(i_name);
 
     			if (i_value.equals("true"))
         			i_args.add("-"+i_name.substring("emsclient.".length()));
@@ -1296,7 +1176,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     }
     
     /** @since 1.3.0 */
-    public String getProperty(String p_name, String p_default) {
+    public String getProperty(final String p_name, final String p_default) {
     	return (null!=m_data_properties)? m_data_properties.getProperty(p_name, p_default) : p_default;
     }
 
@@ -1304,21 +1184,28 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * <p>
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.     
 	 */
-    public void parseArgs(String[] args) throws IOException {
+    public void parseArgs(final String[] args) throws IOException {
     	
     	logInfo("Parsing arguments...");
     	for(String i_arg : args)
     		logInfo("Argument: ".concat(i_arg));
+    	try {
+    		throw new Exception();
+    	}
+    	catch (Exception ex) {
+    		ex.printStackTrace();
+    	}
     	
     	//1.3.0: parse from a property file...
     	if (this!=m_data_shared_client) {    	
     		if (args.length>0 && args[0].equals("-propfile")) {
-        		if (args.length<2) usage();
+        		if (args.length<2) 
+        			exitOnInvalidUsage();
         	
         		File i_propfile = new File(args[1]);
         		if (!i_propfile.exists()) {
         			logError("Cannot find property file: " + i_propfile.getAbsolutePath());
-        			usage();
+        			exitOnInvalidUsage();
         		}
         		
         		m_data_properties = new Properties();
@@ -1330,7 +1217,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
         		catch (IOException ex) {
         			logError("Failed to load property file: " + i_propfile.getAbsolutePath());
         			logError(ex);
-        			usage();
+        			exitOnInvalidUsage();
         		}
         		finally {
         			if (null!=i_sfile)
@@ -1361,7 +1248,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * <p>
      * @since 1.3.2 
      */
-    private void parseArgsImpl(String[] args) throws IOException { 
+    private void parseArgsImpl(final String[] args) throws IOException { 
         int i=0;
 
         //1.3.0
@@ -1369,53 +1256,53 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
           
         while(i < args.length) {
             if (args[i].compareTo("-server")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_server_url = args[i+1];
                 i += 2;
             }
-            else if (args[i].compareTo("-factory")==0) {// || args[i].compareTo("-jndi_factory")==0) {
-                if ((i+1) >= args.length) usage();
+            else if (args[i].compareTo("-factory")==0) {
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_factory_name = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-provider")==0 || args[i].compareTo("-jndi_url")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_provider_url = args[i+1];
                 i += 2;
             }
             //1.3.3
             else if (args[i].compareTo("-jndi_provider_factory")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_provider_factory = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-topic")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_destination.m_topic_name = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-jndi_topic")==0) { //1.3.3
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_destination.m_topic_jndi_name = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-queue")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_destination.m_queue_name = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-jndi_queue")==0) { //1.3.3
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_destination.m_queue_jndi_name = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-reply")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_replyTo = args[i+1];
                 i += 2;
             }
             else if (args[i].compareTo("-infile")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 //1.1.0
                 File i_file = new File(args[i+1]);
                 m_in_files.add(i_file);
@@ -1434,7 +1321,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
                 i += 2;
             }
             else if (args[i].equalsIgnoreCase("-log") || args[i].equalsIgnoreCase("-outfile")) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_out_file = new File(args[i+1]);
                 
                 //1.2.0: check the parent folder...
@@ -1453,63 +1340,63 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
                 i += 2;
             }
             else if (args[i].compareTo("-count")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 try {
                     m_count = Integer.parseInt(args[i+1]);
                 }
-                catch(NumberFormatException e) {
-                    System.err.println("Error: invalid value of -count parameter");
-                    usage();
+                catch (final NumberFormatException ex) {
+                    System.err.println("Error: invalid value of -count parameter: ".concat(args[i+1]));
+                    exitOnInvalidUsage();
                 }
                 i += 2;
             }
             else if (args[i].compareTo("-delay")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 try {
                     m_delay_ms = Integer.parseInt(args[i+1]);
                 }
-                catch(NumberFormatException e) {
-                    System.err.println("Error: invalid value of -delay parameter");
-                    usage();
+                catch (final NumberFormatException ex) {
+                    System.err.println("Error: invalid value of -delay parameter: ".concat(args[i+1]));
+                    exitOnInvalidUsage();
                 }
                 i += 2;
             }
             else if (args[i].compareTo("-timeout")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 try {
                     m_timeout_s = Integer.parseInt(args[i+1]);
                 }
-                catch(NumberFormatException e) {
-                    System.err.println("Error: invalid value of -timeout parameter");
-                    usage();
+                catch (final NumberFormatException ex) {
+                    System.err.println("Error: invalid value of -timeout parameter: ".concat(args[i+1]));
+                    exitOnInvalidUsage();
                 }
                 i += 2;
             }
             else if (args[i].compareTo("-user")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_username = args[i+1];
                 i += 2;
             }
             //1.3.3
             else if (args[i].compareTo("-jndi_user")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_jndi_username = args[i+1];
 	            i += 2;
 	        }
             else if (args[i].compareTo("-password")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_password = args[i+1];
                 i += 2;
             }
             //1.3.3
             else if (args[i].compareTo("-jndi_password")==0) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_connection.m_jndi_password = args[i+1];
                 i += 2;
             }
             //1.2.0
             else if (args[i].matches("-password[-_]file")) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 
                 File i_file = new File(args[i+1]);
                 if (!i_file.exists()) {
@@ -1525,12 +1412,12 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
                 i += 2;
             }
             else if (args[i].compareTo("-help")==0) {
-                usage();
+            	exitOnInvalidUsage();
             }
             //1.1
             else if (args[i].compareTo("-selector")==0)
             {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 m_config_destination.m_selector = args[i+1];
                 i += 2;
             }
@@ -1553,39 +1440,39 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
             	i++;
             }
             else if (args[i].matches("-ssl[-_]identity")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_ssl.m_ssl_identity = args[i+1];
             	i+=2;
             }
             else if (args[i].matches("-ssl[-_]key")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_ssl.m_ssl_key = args[i+1];
             	i+=2;
         	}
             else if (args[i].matches("-ssl[-_]password")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_ssl.m_ssl_password = args[i+1];
             	i+=2;
     		}
     		else if (args[i].matches("-ssl[-_]trusted([-_]certs){0,1}")) {
-    			if ((i+1) >= args.length) usage();
+    			if ((i+1) >= args.length) exitOnInvalidUsage();
     			if (null==m_config_ssl.m_ssl_trustedcerts)
     				m_config_ssl.m_ssl_trustedcerts = new Vector<String>();
     			m_config_ssl.m_ssl_trustedcerts.add(args[i+1]);
     			i+=2;
     		}
             else if (args[i].matches("-ssl[-_]vendor")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_ssl.m_ssl_vendor = args[i+1];
             	i+=2;
             }
             else if (args[i].matches("-ssl[-_]ciphers")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_ssl.m_ssl_ciphers = args[i+1];
             	i+=2;
             }
             else if (args[i].matches("-ssl[-_]hostname")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_ssl.m_ssl_hostname = args[i+1];
             	i+=2;
             }
@@ -1607,7 +1494,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
             }
             //1.2.0
             else if (args[i].matches("-debug")) {
-            	m_flag_debug = true;
+            	setDebug(true);
             	i++;
             }
             else if (args[i].matches("-noreply")) {
@@ -1615,12 +1502,12 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
             	i++;
             }
             else if (args[i].matches("-factory[-_]clientid")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_connection.m_data_factory_clientid = args[i+1];
             	i+=2;
             }
             else if (args[i].matches("-clientid")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_config_connection.m_data_clientid = args[i+1];
             	i+=2;
             }
@@ -1636,18 +1523,18 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
             }
             //1.3.0
             else if (args[i].matches("-test-threads")) {
-                if ((i+1) >= args.length) usage();
+                if ((i+1) >= args.length) exitOnInvalidUsage();
                 try {
                     m_data_param_test_threads = Integer.parseInt(args[i+1]);
                 }
-                catch(NumberFormatException e) {
-                    System.err.println("Error: invalid value of -test-threads parameter");
-                    usage();
+                catch (final NumberFormatException ex) {
+                    System.err.println("Error: invalid value of -test-threads parameter: ".concat(args[i+1]));
+                    exitOnInvalidUsage();
                 }
                 i += 2;
             }   
             else if (args[i].matches("-test-trigger-topic")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	m_data_param_test_trigger_topic = args[i+1];
             	i+=2;
             }
@@ -1663,12 +1550,12 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
             }
             //1.3.0
             else if (args[i].matches("-log4j")) {
-            	m_flag_log4j = true;
+            	setLog4j(true);
             	i++;
             }
             //1.3.3
             else if (args[i].matches("-jndi_property")) {
-            	if ((i+1) >= args.length) usage();
+            	if ((i+1) >= args.length) exitOnInvalidUsage();
             	if (null==m_config_connection.m_jndi_properties) //1.3.4
             		m_config_connection.m_jndi_properties = new ArrayList<String>();
             	m_config_connection.m_jndi_properties.add(args[i+1]);
@@ -1678,7 +1565,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
             	boolean i_found = false;
             	for(String i_pattern : m_data_cmdline_system_properties.keySet())
             		if (args[i].matches(i_pattern)) {
-            			if ((i+1) >= args.length) usage();
+            			if ((i+1) >= args.length) exitOnInvalidUsage();
             			m_data_system_properties.put(m_data_cmdline_system_properties.get(i_pattern), args[i+1]);
             			i+=2;
             			
@@ -1705,9 +1592,17 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     
     }
     
+    /** @since 1.4.0 */
+    protected void exitOnInvalidUsage() {
+		usage(System.err);
+		System.exit(EXIT_CODE_INVALID_USAGE);
+    }
+    
     //1.3.0
-    private void parseAckModeArg(int i, String args[]) {
-    	if ((i+1) >= args.length) usage();
+    private void parseAckModeArg(final int i, final String[] args) {
+    	if ((i+1) >= args.length)
+    		exitOnInvalidUsage();
+    	
         try {
         	if (args[i+1].equalsIgnoreCase("auto_acknowledge"))
         		m_data_param_ack_mode = javax.jms.Session.AUTO_ACKNOWLEDGE;
@@ -1732,16 +1627,16 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
         	else
         		m_data_param_ack_mode = Integer.parseInt(args[i+1]);
         }
-        catch(NumberFormatException e) {
+        catch (final NumberFormatException ex) {
             System.err.println("Error: invalid value of -ackmode parameter");
-            usage();
+    		exitOnInvalidUsage();
         }
     }
 
-    public static String dumpBytes(byte[] bs) {
-        StringBuffer ret = new StringBuffer(bs.length);
+    public static String dumpBytes(final byte[] bs) {
+        final StringBuilder ret = new StringBuilder(bs.length);
         for (int i = 0; i < bs.length; i++) {
-            String hex = Integer.toHexString(0x0100 + (bs[i] & 0x00FF)).substring(1);
+            final String hex = Integer.toHexString(0x0100 + (bs[i] & 0x00FF)).substring(1);
             ret.append((hex.length() < 2 ? "0" : "") + hex);
         }
         return ret.toString();
@@ -1752,137 +1647,10 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * <p>
      * @since 1.2.0
      */
-    public String toFilename(String p_str) {
+    public String toFilename(final String p_str) {
     	return p_str.replaceAll("[^A-Za-z0-9-_\\.\\(\\)\\[\\]]", "_");
     }
 
-    /**
-     * @since 1.2.0
-     */
-    public boolean isDebugEnabled() {
-    	return m_flag_debug;
-    }
-    
-    /**
-     * @since 1.3.0
-     */
-    private void trace(String p_level, String p_text) {
-    	synchronized(m_data_shared_client) {
-   			System.out.println(m_dateformat.format(new Date())+p_level + "(" + Thread.currentThread().getName() + ") " + p_text);
-    	}
-    }
-    
-    /**
-     * @since 1.3.0
-     */
-    public void log(String p_text) {
-    	if (m_flag_log4j) {
-    		if (m_logger.isInfoEnabled())
-    			m_logger.info(p_text);
-    	}
-    	else
-    		System.out.println(p_text);
-    }
-    
-    /**
-     * @since 1.2.0
-     */
-    public synchronized void logDebug(String p_text) {
-    	if (isDebugEnabled()) {
-    		//1.3.0
-    		if (m_flag_log4j) {
-    			if (m_logger.isDebugEnabled())
-					m_logger.debug(p_text);
-    		}
-    		else
-    			trace(TRACE_DEBUG, p_text);
-    	}
-    }
-
-    /**
-     * @since 1.2.0
-     */
-    public synchronized void logWarning(String p_text) {
-    	//1.3.0
-		if (m_flag_log4j) {
-			m_logger.warn(p_text);
-		}
-		else
-			trace(TRACE_WARNING, p_text);
-    }
-
-    /**
-     * @since 1.2.0
-     */
-    public void logWarning(Throwable ex, String p_text) {
-    	
-    	if (null==ex) {
-    		logWarning(p_text);
-    		return;
-    	}
-    	
-    	//1.3.0
-    	if (m_flag_log4j) {
-    		m_logger.warn(p_text, ex);
-    	}
-    	else {
-	    	StringWriter i_sw = new StringWriter();
-	    	PrintWriter i_pw = new PrintWriter(i_sw);
-	    	ex.printStackTrace(i_pw);
-	    	
-	   		logWarning(p_text.trim() + ": " + ex.getClass().getSimpleName()+ ": " + ex.getMessage().trim() + ": " + i_sw.toString());
-    	}
-    }
-    
-    /**
-     * @since 1.2.0
-     */
-    public synchronized void logInfo(String p_text) {
-    	
-   		//1.3.0
-		if (m_flag_log4j) {
-			if (m_logger.isInfoEnabled())
-				m_logger.info(p_text);
-		}
-		else
-			trace(TRACE_INFO, p_text);
-    }
-    
-    /**
-     * @since 1.2.0
-     */
-    public synchronized void logError(String p_text) {
-   		//1.3.0
-		if (m_flag_log4j)
-			m_logger.error(p_text);
-		else
-			trace(TRACE_ERROR, p_text);
-    }
-
-    /**
-     * @since 1.2.0
-     */
-    public void logError(Throwable ex) {
-    	
-   		//1.3.0
-		if (m_flag_log4j)
-			m_logger.error(ex);
-		else {
-			StringWriter i_sw = new StringWriter();
-			PrintWriter i_pw = new PrintWriter(i_sw);
-			ex.printStackTrace(i_pw);
-    	    	
-			logError(ex.getClass().getSimpleName()+ ": " + ex.getMessage().trim() + ": " + i_sw.toString());
-		}
-    }
-    
-    /**
-     * @since 1.3.0
-     */
-    public String toString() {
-    	return getClass().getSimpleName();
-    }
-    
     /**
      * Blocks until one message is received on the topic name from the command line argument "test-trigger-topic".
      * This allows synchronised start of multiple message publishers/senders.
@@ -1896,7 +1664,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     	
 		//*** WAIT FOR 1ST MSG ON TRIGGER TOPIC BEFORE STARTING PUBLISHING/SENDING LOOP
     	
-    	String i_args[] = new String[getArgs().length+6];
+    	final String[] i_args = new String[getArgs().length+6];
     	for(int i=0;i<getArgs().length ; i++)
     		i_args[i] = getArgs()[i];
     	
@@ -1913,15 +1681,15 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
     		//*** BLOCKS UNTIL ONE MSG IS RECEIVED
         	i_trigger.start();
 
-    	} catch (JMSException ex) {
+    	} catch (final JMSException ex) {
     		logError("Failed to listen on trigger topic: " + getTestTriggerTopic());
     		logError(ex);
 			throw ex;
-    	} catch (NamingException ex) {
+    	} catch (final NamingException ex) {
     		logError("Failed to listen on trigger topic: " + getTestTriggerTopic());
     		logError(ex);
 			throw ex;
-    	} catch (IOException ex) {
+    	} catch (final IOException ex) {
     		logError("Failed to listen on trigger topic: " + getTestTriggerTopic());
     		logError(ex);
 			throw ex;
@@ -1962,7 +1730,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * <p>
      * @since 1.2.0
      */
-    public static boolean isValid(String p_str) {
+    public static boolean isValid(final String p_str) {
     	return null!=p_str && p_str.trim().length()>0;
     }
 
@@ -1974,8 +1742,9 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
      * @return a string containing all lines of the file. If exceptions occur, the returned string is empty.
      * @since 1.2.0
      */
-     public static String readTextFile(File p_file) throws IOException {
-    	 StringBuffer i_text = new StringBuffer();
+     public static String readTextFile(final File p_file) throws IOException {
+    	 
+    	 final StringBuilder i_text = new StringBuilder();
 
          BufferedReader i_reader = null;
          try {
@@ -1992,7 +1761,7 @@ public abstract class EMSClient extends Object implements Serializable, Exceptio
         		try {
         			i_reader.close();
         		}
-        	 	catch (Exception ex) {
+        	 	catch (final Exception ex) {
         	 		
         	 	}
             }

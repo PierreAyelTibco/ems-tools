@@ -6,19 +6,31 @@ import com.tibco.tibjms.admin.*;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.3.7
+ * @version 1.4.0
  */
 public class ProducerInfoFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private ProducerInfoFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String CSVHeader(boolean p_timestamp) {
-		return (p_timestamp? "Timestamp,":"")+"Connection ID,CreateTime,Destination,Type,ID,Session ID,"+StatDataFormat.CSVHeader()+",Username";
+	public static String CSVHeader(final boolean p_timestamp) {
+		return (p_timestamp? "Timestamp,":"")+"Connection ID,CreateTime,Destination,Type,ID,Session ID,"+StatDataFormat.CSV_HEADER+",Username";
 	}
 	
-	public static String toCSV(ProducerInfo p_producer, String p_timestamp) {
+	public static String toCSV(final ProducerInfo p_producer, final String p_timestamp) {
 		if (null==p_producer)
 			return (p_timestamp!=null? p_timestamp:"")+",,,,,,"+StatDataFormat.toCSV(null)+",";
 		

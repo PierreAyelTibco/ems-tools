@@ -34,7 +34,7 @@ done
 
 ###############################################################################
 
-exec "${JAVA_HOME}/bin/java" -cp "${CP}" com.tibco.tools.`basename "${SCRIPT}" .sh` $@
+exec "${JAVA_HOME}/bin/java" -cp "${CP}" com.tibco.psg.emstools.tools.`basename "${SCRIPT}" .sh` $@
 
 ###############################################################################
 ###  END OF FILE  #############################################################

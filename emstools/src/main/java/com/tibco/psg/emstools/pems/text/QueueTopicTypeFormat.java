@@ -4,15 +4,27 @@ package com.tibco.psg.emstools.pems.text;
 /**
  * <p> 
  * @author Pierre Ayel
- * @version 1.0.0
+ * @version 1.4.0
  */
 public class QueueTopicTypeFormat {
 
 	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+
+	/**
+	 * Private constructor.
+	 * <p>
+	 * @since 1.4.0
+	 */
+	private QueueTopicTypeFormat() {
+	}
+			
+	/*************************************************************************/
 	/***  STATIC METHODS  ****************************************************/
 	/*************************************************************************/
 
-	public static String toCSV(int p_type) {
+	public static String toCSV(final int p_type) {
 		switch(p_type) {
 			case 1: return "QUEUE";
 			case 2: return "TOPIC";

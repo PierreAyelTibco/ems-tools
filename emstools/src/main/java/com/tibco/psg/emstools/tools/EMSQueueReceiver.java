@@ -2,8 +2,9 @@
 package com.tibco.psg.emstools.tools;
 
 import java.io.IOException;
-import java.util.Vector;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import javax.jms.*;
 import javax.naming.NamingException;
 
@@ -13,7 +14,7 @@ import com.tibco.tibjms.Tibjms;
  * <p>
  * @author Richard Lawrence
  * @author Pierre Ayel
- * @version 1.3.3
+ * @version 1.4.0
  */
 public class EMSQueueReceiver extends EMSQueueClient {
     
@@ -38,24 +39,25 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 */
 	public static class pThread extends Thread {
 		
-		private EMSQueueReceiver m_receiver;
+		private final EMSQueueReceiver m_receiver;
 		
-		public pThread(int n, EMSQueueReceiver p_receiver) {
+		public pThread(final int n, final EMSQueueReceiver p_receiver) {
 			super();
 			setName("QueueReceiver-Thread-"+((n<9)? "0":"")+n);
 			setDaemon(false);
 			m_receiver = p_receiver;
 		}
 		
+		@Override
 		public void run() {
 			try {
 				m_receiver.start();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} 
+			catch (final Exception ex) {
+				m_receiver.logError("Failed to start msg receiver: ".concat(ex.getMessage()));
 			}
 		}
-	};
+	}
 	
 	/*************************************************************************/
 	/***  RUNTIME DATA  ******************************************************/
@@ -78,7 +80,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 * @param p_args The command line arguments.
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.
 	 */
-	public EMSQueueReceiver(String[] p_args) throws IOException {
+	public EMSQueueReceiver(final String[] p_args) throws IOException {
 		super();
 		
     	//1.1: put count with default value 0 and timeout to 0;
@@ -138,7 +140,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 * @see javax.jms.Session
 	 * @since 1.3.0
 	 */
-	public void start(int p_mode) throws JMSException, NamingException {
+	public void start(final int p_mode) throws JMSException, NamingException {
 		
 		//1.3.0
 		while(true) {
@@ -250,7 +252,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
 		        //1.3.0
 		        break; //break from while(true);
 	        }
-	        catch (JMSException ex) {
+	        catch (final JMSException ex) {
 	        	if (getConnectionConfiguration().mustReconnect())
 	        		logError(ex);
 	        	else
@@ -265,7 +267,8 @@ public class EMSQueueReceiver extends EMSQueueClient {
 		        	
 						logInfo("Closing receiver...");
 		        		receiver.close();
-					} catch (JMSException ex) {
+					} 
+	        		catch (final JMSException ex) {
 						logError(ex);
 					}
 	        	
@@ -274,7 +277,8 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	            	try {
 						logInfo("Closing reply message producer...");
 	            		m_msgProducer.close();
-					} catch (JMSException ex) {
+					} 
+	            	catch (final JMSException ex) {
 						logError(ex);
 					}
 	        	
@@ -283,7 +287,8 @@ public class EMSQueueReceiver extends EMSQueueClient {
 					try {
 						logInfo("Closing session...");
 						i_session.close();
-					} catch (JMSException ex) {
+					} 
+	        		catch (final JMSException ex) {
 						logError(ex);
 					}
 	        	
@@ -301,7 +306,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 * @throws JMSException In case of failure while extracting data from the message.
 	 * @since 1.3.0
 	 */
-	protected void onMessage(Session p_session, Message p_message, long i_totalMsgs) throws JMSException {
+	protected void onMessage(final Session p_session, final Message p_message, final long i_totalMsgs) throws JMSException {
 		
 		Destination replyDest = p_message.getJMSReplyTo();
 		if (m_flag_reply && replyDest != null) {
@@ -377,47 +382,43 @@ public class EMSQueueReceiver extends EMSQueueClient {
     /**
      * Prints the command line usage on standard error.
      */
-    public void usage() {
-        System.err.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
-        System.err.println("");
-        System.err.println("   where options are:");
-        System.err.println("");
-        System.err.println("  -server     <serverURL> - EMS server URL, default is local server");
-        System.err.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
-        System.err.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
-        System.err.println("  -user       <user name> - user name, default is null");
-        System.err.println("  -password   <password>  - password, default is null");
-        System.err.println("  -queue      <name>      - The Queue full name");
-        System.err.println("  -jndi_queue <name>      - The Queue JNDI name");
-        System.err.println("  -selector   <selector>  - selector expression");
-        System.err.println("  -infile     <file name> - The file name that contains the response message");
-        System.err.println("  -log        <file name> - The output log/folder file name");
-        System.err.println("  -count      <count>     - maximum number of messages to process (default is infinite)");
-        System.err.println("  -timeout    <timeout>   - time to wait for next message in seconds, otherwise stops (default is infinite)");
+	@Override
+    public void usage(final PrintStream p_out) {
+        p_out.println("\nUsage: java "+getClass().getSimpleName()+" [options]");
+        p_out.println("");
+        p_out.println("   where options are:");
+        p_out.println("");
+        p_out.println("  -server     <serverURL> - EMS server URL, default is local server");
+        p_out.println("  -jndi_url   <JNDI URL>  - JNDI server URL ");
+        p_out.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
+        p_out.println("  -user       <user name> - user name, default is null");
+        p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("  -queue      <name>      - The Queue full name");
+        p_out.println("  -jndi_queue <name>      - The Queue JNDI name");
+        p_out.println("  -selector   <selector>  - selector expression");
+        p_out.println("  -infile     <file name> - The file name that contains the response message");
+        p_out.println("  -log        <file name> - The output log/folder file name");
+        p_out.println("  -count      <count>     - maximum number of messages to process (default is infinite)");
+        p_out.println("  -timeout    <timeout>   - time to wait for next message in seconds, otherwise stops (default is infinite)");
 
         //1.0.0
-        System.err.println("");
-        System.err.println("  -noUnmap                - disables unmapping of received MapMessage(s) before tracing");
-
-        System.exit(EXIT_CODE_INVALID_USAGE);
+        p_out.println("");
+        p_out.println("  -noUnmap                - disables unmapping of received MapMessage(s) before tracing");
     }
 
 	/**************************************************************************/
 	/***  MAIN METHOD  ********************************************************/
 	/**************************************************************************/
     
-    public static void main(String args[]) {
+    public static void main(final String[] args) {
         try {
-        	//1.3.0
-        	//new EMSQueueReceiver(args);
-        	
-        	EMSQueueReceiver i_tool = new EMSQueueReceiver(args);
+        	final EMSQueueReceiver i_tool = new EMSQueueReceiver(args);
         	
         	if (i_tool.getTestThreadCount()>1) {
-        		Vector<pThread> i_threads = new Vector<pThread>(i_tool.getTestThreadCount());
+        		final List<pThread> i_threads = new ArrayList<>(i_tool.getTestThreadCount());
         		for(int i=0;i<i_tool.getTestThreadCount();i++) {
         			i_tool.logInfo("Starting new thread ("+(1+i)+"/"+i_tool.getTestThreadCount()+")...");
-        			pThread i_thread = new pThread(i+1, new EMSQueueReceiver(args));
+        			final pThread i_thread = new pThread(i+1, new EMSQueueReceiver(args));
         			i_thread.start();
         			i_threads.add(i_thread);
         		}
@@ -429,7 +430,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
         	
         	System.exit(EXIT_CODE_SUCCESS);
         }
-        catch (Throwable ex) {
+        catch (final Throwable ex) {
         	ex.printStackTrace();
         	System.exit(EXIT_CODE_UNKNOWN_ERROR);
         }
