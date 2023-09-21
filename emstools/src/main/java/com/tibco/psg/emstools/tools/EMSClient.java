@@ -1,0 +1,2006 @@
+
+package com.tibco.psg.emstools.tools;
+
+import javax.jms.*;
+import javax.naming.*;
+
+import com.tibco.tibjms.Tibjms;
+import com.tibco.tibjms.TibjmsQueueConnectionFactory;
+import com.tibco.tibems.ufo.*;
+
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Properties;
+import java.util.Vector;
+
+/**
+ * <p>
+ * Version 1.2.0:
+ * <ul>
+ * <li>The method {@link #saveMessage(Message, String)} can now write each message in its own file.</li>
+ * </ul>
+ * <p>
+ * @author Richard Lawrence (TIL Test Harness superclass)
+ * @author Pierre Ayel
+ * @version 1.3.8
+ */
+public abstract class EMSClient extends Object implements Serializable, ExceptionListener {
+	
+	/*************************************************************************/
+	/***  DEFINITIONS  *******************************************************/
+	/*************************************************************************/
+	
+    /** Unique ID for serialisation. */
+	private static final long serialVersionUID = 4123566618083592853L;
+
+	/** @since 1.3.0 */
+	private static final String TRACE_DEBUG = " [DEBUG] ";
+	private static final String TRACE_WARNING = " [WARN] ";
+	private static final String TRACE_INFO = " [INFO] ";
+	private static final String TRACE_ERROR = " [ERROR] ";
+	
+	/*************************************************************************/
+	/***  SUB-CLASSES  *******************************************************/
+	/*************************************************************************/
+
+	/** 
+	 * @since 1.3.3 
+	 * @version 1.3.7
+	 */
+	public static class ConnectionConfiguration extends Object {
+
+		/*************************************************************************/
+		/***  RUNTIME DATA  ******************************************************/
+		/*************************************************************************/
+		
+		/**
+		 * The JNDI provider factory class-name (default value is <code>com.tibco.tibjms.naming.TibjmsInitialContextFactory</code>).
+		 */
+		private String 			m_provider_factory = "com.tibco.tibjms.naming.TibjmsInitialContextFactory";
+		
+		/**
+		 * @see #getJNDIURL()
+		 */
+	    private String 			m_provider_url;
+	    
+	    /**
+	     * @see #getServerURL();
+	     */
+	    private String 			m_server_url = "tcp://localhost:7222"; //1.3.7: default value
+	    
+	    private String 			m_factory_name;
+	    private String 			m_username = "admin"; //1.3.7: default value 
+	    private String 			m_password = ""; //1.3.7: default value
+	    
+	    /** 
+	     * The JNDI login (if <code>null</code>, we use {@link #m_username}).
+	     * <p>
+	     * @since 1.3.3
+	     */
+	    private String m_jndi_username;
+
+	    /** 
+	     * The JNDI password (if <code>null</code>, we use {@link #m_password}).
+	     * <p>
+	     * @since 1.3.3
+	     */
+	    private String m_jndi_password;
+	    
+	    /** @since 1.3.3 */
+	    private ArrayList<String> m_jndi_properties;
+	    
+	    private boolean m_flag_reconnect = false;
+	    private boolean m_flag_shared_connection = false;
+	    
+	    /** @since 1.2.0 */
+	    private String m_data_factory_clientid;
+	    private String m_data_clientid;
+	    
+		/*************************************************************************/
+		/***  ACCESSOR METHODS  **************************************************/
+		/*************************************************************************/
+	   
+	    /** @since 1.3.3 */
+	    public String getJNDIURL() {
+	    	return m_provider_url;
+	    }
+	    
+	    /** @since 1.3.3 */
+	    public String getServerURL() {
+	    	return m_server_url;
+	    }
+	    
+	    public boolean mustReconnect() {
+	    	return m_flag_reconnect;
+	    }
+	    
+		/*************************************************************************/
+		/***  METHODS  ***********************************************************/
+		/*************************************************************************/
+	    
+	    public void logURL(EMSClient p_client) {
+	    	if (null!=getJNDIURL())
+	        	p_client.log("JNDI URL..................... " + getJNDIURL());
+	        else
+	        	p_client.log("Server....................... " + getServerURL());
+	    	if (null!=m_jndi_username)
+	    		p_client.log("JNDI User......................... " + m_jndi_username);
+	        p_client.log("User......................... "+(m_username!=null?m_username:"(null)"));
+	    }
+	    
+	    public InitialContext createJNDIContext() throws NamingException {
+		    Hashtable<Object,Object> i_env = new Hashtable<Object,Object>();
+		    i_env.put(Context.INITIAL_CONTEXT_FACTORY, m_provider_factory);
+		    i_env.put(Context.PROVIDER_URL, m_provider_url);
+	
+		    if (null!=m_jndi_username || null!=m_username)  {
+		    	i_env.put(Context.SECURITY_PRINCIPAL, (null!=m_jndi_username)? m_jndi_username : m_username);
+		    	if (null!=m_jndi_password || null!=m_password)
+		    		i_env.put(Context.SECURITY_CREDENTIALS, (null!=m_jndi_password)? m_jndi_password : m_password);
+		    }
+		    
+		    //*** ADDITIONAL USER PROPERTIES
+		    if (null!=m_jndi_properties) //1.3.4
+			    for(String i_property : m_jndi_properties) {
+			    	int i_pos = i_property.indexOf('=');
+			    	if (i_pos > 0)
+			    		i_env.put(i_property.substring(0, i_pos).trim(), i_property.substring(i_pos+1).trim());
+			    }
+		    
+		    return new InitialContext(i_env);
+	    }
+	};
+	
+	/** @since 1.3.3 */
+	public static class SSLConfiguration extends Object {
+
+		/*************************************************************************/
+		/***  RUNTIME DATA  ******************************************************/
+		/*************************************************************************/
+		
+	    private boolean 			m_ssl_enabled = false;
+	    private String 				m_ssl_identity;
+	    private String 				m_ssl_key;
+	    private String 				m_ssl_password;
+	    private Vector<String> 		m_ssl_trustedcerts;
+	    private String 				m_ssl_vendor;
+	    private String 				m_ssl_ciphers;
+	    private String 				m_ssl_hostname;
+	    private boolean 			m_ssl_verify_host = false;
+	    private boolean 			m_ssl_verify_hostname = false;
+	    private boolean 			m_ssl_trace = false;
+	    private boolean 			m_ssl_debug_trace = false;
+		
+	    /**
+	     * When using a TibjmsQueueConnectionFactory (connecting with tcp), this method creates appropriate
+	     * properties to associate with the factory.
+	     * <p>
+	     * @since 1.1.0
+	     */
+	    @SuppressWarnings({ "unchecked", "rawtypes" })
+		private HashMap createFactoryProperties() {
+	    	HashMap i_env = new HashMap();
+	    	
+	    	if (m_ssl_enabled) {
+	    		if (m_ssl_identity!=null && !m_ssl_identity.equals("")) {
+	    			i_env.put(com.tibco.tibjms.TibjmsSSL.IDENTITY, m_ssl_identity);
+	    			i_env.put(com.tibco.tibjms.TibjmsSSL.PASSWORD, m_ssl_password);
+	    			
+	    			if (m_ssl_key!=null && !m_ssl_key.equals(""))
+	    				i_env.put(com.tibco.tibjms.TibjmsSSL.PRIVATE_KEY, m_ssl_key);
+	    		}
+
+	    		//fixed in 1.2.1
+				if (m_ssl_trustedcerts!=null) {// && m_ssl_trustedcerts.equals("")) {
+					//Vector i_trusted = new Vector(1);
+					//i_trusted.add(m_ssl_trustedcerts);
+					i_env.put(com.tibco.tibjms.TibjmsSSL.TRUSTED_CERTIFICATES, m_ssl_trustedcerts);
+				}
+
+				if (m_ssl_vendor!=null && !m_ssl_vendor.equals(""))
+					i_env.put(com.tibco.tibjms.TibjmsSSL.VENDOR, m_ssl_vendor);
+				
+				if (m_ssl_ciphers!=null && !m_ssl_ciphers.equals(""))
+					i_env.put(com.tibco.tibjms.TibjmsSSL.CIPHER_SUITES, m_ssl_ciphers);
+				
+				if (m_ssl_hostname!=null && !m_ssl_hostname.equals(""))
+					i_env.put(com.tibco.tibjms.TibjmsSSL.EXPECTED_HOST_NAME, m_ssl_hostname);
+				
+				i_env.put(com.tibco.tibjms.TibjmsSSL.ENABLE_VERIFY_HOST, m_ssl_verify_host);
+				i_env.put(com.tibco.tibjms.TibjmsSSL.ENABLE_VERIFY_HOST_NAME, m_ssl_verify_hostname);
+				i_env.put(com.tibco.tibjms.TibjmsSSL.TRACE, m_ssl_trace);
+				i_env.put(com.tibco.tibjms.TibjmsSSL.DEBUG_TRACE, m_ssl_debug_trace);
+	    	}
+	    	
+	    	return i_env;
+	    }
+	}; 
+	
+	/** @since 1.3.3 */
+	public static class DestinationConfiguration extends Object {
+		
+		/*************************************************************************/
+		/***  RUNTIME DATA  ******************************************************/
+		/*************************************************************************/
+		
+	    /** 
+	     * Name of the topic to publish into or receive from (made private in 1.3.3). 
+	     * <p>
+	     * @see #getTopicName()
+	     */
+	    private String	 			m_topic_name;
+
+	    /**
+	     * @see #getTopicJNDIName() 
+	     * @since 1.3.3 
+	     */
+	    private String				m_topic_jndi_name;
+	    
+	    /** 
+	     * Name of the queue to publish into or receive from (made private in 1.3.3). 
+	     * <p>
+	     * @see #getQueueName()
+	     */
+	    private String 				m_queue_name;
+
+	    /**
+	     * @see #getQueueJNDIName() 
+	     * @since 1.3.3 
+	     */
+	    private String				m_queue_jndi_name;
+	    
+	    /**
+	     * Destination selector (used by EMSQueueBrowser).
+	     */
+	    private String 			m_selector;
+		
+		/*************************************************************************/
+		/***  ACCESSOR METHODS  **************************************************/
+		/*************************************************************************/
+	    
+	    /** @since 1.3.3 */
+	    public String getTopicName() {
+	    	return m_topic_name;
+	    }
+
+	    /** @since 1.3.3 */
+	    public String getTopicJNDIName() {
+	    	return m_topic_jndi_name;
+	    }
+
+	    /** @since 1.3.3 */
+	    public String getQueueName() {
+	    	return m_queue_name;
+	    }
+
+	    /** @since 1.3.3 */
+	    public String getQueueJNDIName() {
+	    	return m_queue_jndi_name;
+	    }
+
+	    /** @since 1.3.3 */
+	    public String getSelector() {
+	    	return m_selector;
+	    }
+	    
+	};
+	
+	/*************************************************************************/
+	/***  RUNTIME DATA  ******************************************************/
+	/*************************************************************************/
+	
+	/** @since 1.3.3 */
+	private ConnectionConfiguration m_config_connection = new ConnectionConfiguration();
+	
+	/** TIBCO EMS Connection parameters. */
+	
+    
+    //1.1.0
+    protected Vector<File> 		m_in_files = new Vector<File>(1);
+    
+    /**
+     * If multiple file names have been provided in the command line, this member is
+     * the index of the file currently being read by the method {@link #loadMessage(TextMessage)} 
+     * (the index moves in a round robin fashion; when a file needs to be read next time, the index increases).
+     * <p>
+     * @since 1.1.0
+     */
+    private int 				m_in_files_index = 0;
+    
+    /** Output file data. */
+    protected File				m_out_file;
+    private FileOutputStream 	m_out_fstream;
+    private PrintStream 		m_out_pstream;
+
+    /** @since 1.3.3 */
+    private DestinationConfiguration m_config_destination = new DestinationConfiguration();    
+    
+    /** Default message text data to send. */ 
+    protected String      		m_data = "message"+'\r'+'\n'+"line2";
+    
+    /** Maximum number of message to send or receive (if 0, there is no limit; default value is <code>1</code>). */
+    protected int				m_count = 1;
+    
+    /** Delay (in milliseconds) between message publications (default value is <code>1000</code>). */
+    protected int				m_delay_ms = 1000;
+    
+    /** Time (in seconds) to wait for the next message reception (default value is <code>30</code>). */
+    protected int				m_timeout_s = 30;
+    
+    protected String 			m_replyTo;
+    
+    /**
+     * Lists of JMS property names to remove from the request message.
+     * //removed in 1.2.0
+     */
+    //protected Vector<String> 	m_removeJMSProperties;
+    
+    /**
+     * Indicates if MapMessage should be written as unmapped (default is <code>true</code>).
+     */
+    protected boolean 			m_unmapMapMsgs = true;
+    
+    /**
+     * SSL Configuration
+     * <p>
+     * @since 1.3.3
+     */
+    private SSLConfiguration m_config_ssl = new SSLConfiguration();
+    
+    /** @since 1.2.0 */
+    public static final int EXIT_CODE_INVALID_USAGE = -2;
+    
+    /** @since 1.2.0 */
+    public static final int EXIT_CODE_SUCCESS = 0;
+
+    /** @since 1.2.0 */
+    public static final int EXIT_CODE_INVALID_FILE = -1;
+
+    /** @since 1.2.0 */
+    public static final int EXIT_CODE_CONNECTION_ERROR = -10;
+
+    /** @since 1.2.0 */
+    public static final int EXIT_CODE_UNKNOWN_ERROR = -3;
+    
+    /** @since 1.2.0 */
+    private SimpleDateFormat m_dateformat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss (SSS'ms')");
+    
+    /** @since 1.2.0 */
+    private boolean m_flag_debug = false;
+    
+    /**
+     * Lists of system properties to set before connecting (if the property has currently no value).
+     * <p> 
+     * @since 1.2.0 
+     * @see #setSystemProperties()
+     */
+    private Hashtable<String,String> m_data_system_properties = new Hashtable<String,String>();
+
+    /**
+     * Lists of command line option and the corresponding system property name to store 
+     * in {@link #m_data_system_properties} when parsing the command line.
+     * <p> 
+     * @since 1.2.0 
+     */
+    private static final Hashtable<String,String> m_data_cmdline_system_properties = new Hashtable<String,String>();
+
+     protected boolean m_flag_reply = true; 
+    
+    /** @since 1.3.0 */
+    private TopicConnection m_topic_connection;
+    private QueueConnection m_queue_connection;
+    /** @since 1.3.3 */
+    private InitialContext m_jndi_context;
+    
+    /** @since 1.3.8 */
+    private TibjmsUFOQueueConnectionFactory m_ufo_queue_connection_factory;
+
+    /** @since 1.3.8 */
+    private TibjmsUFOTopicConnectionFactory m_ufo_topic_connection_factory;
+
+    private static EMSClient m_data_shared_client = new EMSClient() {
+
+    	/** Unique ID for serialisation. */
+		private static final long serialVersionUID = 5669789213010252943L;
+
+	    public boolean sharesConnection() {
+	    	return false;
+	    }
+		
+		@Override
+		public void usage() {
+		}
+    };
+    
+    /**
+     * Integer value of the command line parameter "-test-threads" (default value is <code>1</code>).
+     * <p>
+     * @since 1.3.0
+     * @see #getTestThreadCount()
+     */
+    private int m_data_param_test_threads = 1;
+
+    /**
+     * String value of the command line parameter "-test-trigger-topic" (default value is <code>null</code>).
+     * This is the name of a topic where the tool listens before starting publishing or sending messages (even in 
+     * multi-threaded mode).
+     * <p>
+     * @since 1.3.0
+     * @see #getTestTriggerTopic()
+     */
+    private String m_data_param_test_trigger_topic;
+    
+    /**
+     * Integer value of the command line parameter "-ackmode", e.g. the message acknowledgement mode
+     * (default value is {@link javax.jms.Session#AUTO_ACKNOWLEDGE}).
+     * <p>
+     * @since 1.3.0
+     * @see #getAckMode()
+     */
+    private int m_data_param_ack_mode = javax.jms.Session.AUTO_ACKNOWLEDGE;
+    
+    /**
+     * Boolean value of the command line parameter "-quiet" (default value is <code>false</code>).
+     * <p>
+     * @since 1.3.0
+     * @see #isQuiet()
+     */
+    private boolean m_flag_param_quiet = false;
+    
+    /**
+     * Copy of the command line arguments.
+     * <p>
+     * @since 1.3.0
+     * @see #getArgs();
+     */
+    private String m_data_params[];
+    
+    /** @since 1.3.0 */
+    private Properties m_data_properties;
+    
+    /** 
+     * Log4j Logger
+     * <p>
+     * @since 1.3.0 
+     */
+	private org.apache.log4j.Logger m_logger = org.apache.log4j.Logger.getLogger(
+		System.getProperty(getClass().getName()+".logger", "emstools.logger")
+	);
+	
+	/** 
+	 * Indicates if we use log4j or not (default is <code>false</code>).
+	 * <p>
+	 * @since 1.3.0 
+	 */
+	private boolean m_flag_log4j = false;
+    
+	/*************************************************************************/
+	/***  STATIC INITIALISATION  *********************************************/
+	/*************************************************************************/
+    
+    static {
+    	m_data_cmdline_system_properties.put("-close[-_]in[-_]callback", Tibjms.PROP_CLOSE_IN_CALLBACK);
+
+    	m_data_cmdline_system_properties.put("-connect[-_]attempts", Tibjms.PROP_CONNECT_ATTEMPTS);
+    	m_data_cmdline_system_properties.put("-connect[-_]attempt[-_]timeout", Tibjms.PROP_CONNECT_ATTEMPT_TIMEOUT);
+
+    	m_data_cmdline_system_properties.put("-daemon[-_]dispatcher", Tibjms.PROP_DAEMON_DISPATCHER);
+
+    	m_data_cmdline_system_properties.put("-trace[-_]ft[-_]events", Tibjms.PROP_FT_EVENTS_EXCEPTION);
+    	m_data_cmdline_system_properties.put("-trace[-_]ft[-_]switch", Tibjms.PROP_FT_SWITCH_EXCEPTION);
+    	
+    	m_data_cmdline_system_properties.put("-message[-_]encoding", Tibjms.PROP_MESSAGE_ENCODING);
+    	
+    	m_data_cmdline_system_properties.put("-multicast[-_]daemon", Tibjms.PROP_MULTICAST_DAEMON);
+    	m_data_cmdline_system_properties.put("-multicast[-_]enabled", Tibjms.PROP_MULTICAST_ENABLED);
+    	
+    	m_data_cmdline_system_properties.put("-ping[-_]interval", Tibjms.PROP_PING_INTERVAL);
+    	
+    	m_data_cmdline_system_properties.put("-reconnect[-_]attempts", Tibjms.PROP_RECONNECT_ATTEMPTS);
+    	m_data_cmdline_system_properties.put("-reconnect[-_]attempt[-_]timeout", Tibjms.PROP_RECONNECT_ATTEMPT_TIMEOUT);
+
+    	m_data_cmdline_system_properties.put("-socket[-_]connect[-_]timeout", Tibjms.PROP_SOCKET_CONNECT_TIMEOUT);
+    	m_data_cmdline_system_properties.put("-socket[-_]receive", Tibjms.PROP_SOCKET_RECEIVE);
+    	m_data_cmdline_system_properties.put("-socket[-_]send", Tibjms.PROP_SOCKET_SEND);
+    	
+    	m_data_cmdline_system_properties.put("-trace[-_]file", Tibjms.PROP_TRACE_FILE);
+    	
+    	//1.3.8
+    	Tibjms.setExceptionOnFTSwitch(false);
+    	Tibjms.setExceptionOnFTEvents(true);
+    };
+    
+	/*************************************************************************/
+	/***  CONSTRUCTORS  ******************************************************/
+	/*************************************************************************/
+	
+	/**
+	 * Creates a new <code>EMSClient</code> object.
+	 * <p>
+	 * @since 1.1.0
+	 */
+    public EMSClient() {
+    	super();
+
+    	m_data_system_properties.put(Tibjms.PROP_FT_EVENTS_EXCEPTION, "true");
+    	m_data_system_properties.put(Tibjms.PROP_FT_SWITCH_EXCEPTION, "true");
+    	m_data_system_properties.put(Tibjms.PROP_CONNECT_ATTEMPTS, "10,500");
+    	m_data_system_properties.put(Tibjms.PROP_RECONNECT_ATTEMPTS, "10,500");
+    }
+
+	/*************************************************************************/
+	/***  ACCESSOR METHODS  **************************************************/
+	/*************************************************************************/
+   
+    /** @since 1.3.3 */
+    public DestinationConfiguration getDestinationConfiguration() {
+    	return m_config_destination;
+    }
+
+    /** @since 1.3.3 */
+    public ConnectionConfiguration getConnectionConfiguration() {
+    	return m_config_connection;
+    }
+    
+    /**
+     * Indicates if this client uses a shared connection or not.
+     * <p>
+     * @since 1.3.0
+     */
+    public boolean sharesConnection() {
+    	return getConnectionConfiguration().m_flag_shared_connection;
+    }
+    
+    /**
+     * Gets the integer value of the command line parameter "-test-threads" (default value is <code>1</code>).
+     * <p>
+     * @since 1.3.0.
+     */
+    public int getTestThreadCount() {
+    	return m_data_param_test_threads;
+    }
+
+    /**
+     * Gets the string value of the command line parameter "-test-trigger-topic" (default value is <code>null</code>).
+     * This is the name of a topic where the tool listens before starting publishing or sending messages (even in 
+     * multi-threaded mode).
+     * <p>
+     * @since 1.3.0
+     */
+    public String getTestTriggerTopic() {
+    	return m_data_param_test_trigger_topic;
+    }
+    
+    /**
+     * Gets the copy of the command line arguments.
+     * <p>
+     * @since 1.3.0
+     */
+    public String[] getArgs() {
+    	return m_data_params;
+    }
+    
+    /**
+     * Gets the integer value of the command line parameter "-ackmode", e.g. the message acknowledgement mode
+     * (default value is {@link javax.jms.Session#AUTO_ACKNOWLEDGE}).
+     * <p>
+     * @since 1.3.0
+     */
+    public int getAckMode() {
+    	return m_data_param_ack_mode;
+    }
+    
+    /**
+     * Gets the Boolean value of the command line parameter "-quiet" (default value is <code>false</code>).
+     * <p>
+     * @since 1.3.0
+     */
+    public boolean isQuiet() {
+    	return m_flag_param_quiet;
+    }
+    
+	/*************************************************************************/
+	/***  METHODS  ***********************************************************/
+	/*************************************************************************/
+
+    /**
+     * <p>
+     * Version 1.3.0:
+     * <p>
+     * The method returns the same connection if called multiple times.
+     * If the connection is set to be shared...
+     * <p>
+     * @return
+     * @throws JMSException
+     * @throws NamingException
+     */
+    public synchronized TopicConnection createTopicConnection() throws JMSException, NamingException {
+    	
+    	//1.3.0
+    	if (sharesConnection())
+   			return m_data_shared_client.createTopicConnection();
+    	if (null!=m_topic_connection)
+    		return m_topic_connection;
+    	
+		TopicConnectionFactory i_factory = null;
+	
+		//1.2.0
+		setSystemProperties();
+		
+		if (m_config_connection.m_provider_url != null) {
+			//1.3.0
+			logInfo("Connecting with JNDI interface: " + m_config_connection.m_provider_url);
+
+		    /*
+		     * Lookup topic connection factory which must exist in the
+		     * factories config file.
+		     */
+			String i_fname = (m_config_connection.m_factory_name!=null)? m_config_connection.m_factory_name : "TopicConnectionFactory";
+	    	i_factory = (TopicConnectionFactory) getJNDIContext().lookup(i_fname);
+		}
+		else if (m_config_connection.m_server_url != null) {
+			//1.3.0
+			logInfo("Connecting with TCP interface: " + m_config_connection.m_server_url);
+
+			//1.3.8
+			if (m_config_connection.m_server_url.indexOf('+')>0)
+				m_ufo_topic_connection_factory = new TibjmsUFOTopicConnectionFactory(m_config_connection.m_server_url);
+			else
+				i_factory = new com.tibco.tibjms.TibjmsTopicConnectionFactory(m_config_connection.m_server_url, null, createFactoryProperties());
+		}
+		else {
+			logError("You must specify provider or server URL");
+			//1.2.0:System.err.println("Error: must specify provider or server URL");
+	        usage();
+		}
+	
+		//*** SETUP SECURITY
+		setGlobalSSLSettings();
+		
+		//1.2.0
+		if (isValid(m_config_connection.m_data_factory_clientid))
+			if (i_factory instanceof TibjmsQueueConnectionFactory)
+				((TibjmsQueueConnectionFactory)i_factory).setClientID(m_config_connection.m_data_factory_clientid);
+		
+		//1.2.0 return i_factory.createTopicConnection(m_username, m_password);
+		TopicConnection i_result = 
+			(null!=m_ufo_topic_connection_factory)? 
+				m_ufo_topic_connection_factory.createTopicConnection(m_config_connection.m_username,  m_config_connection.m_password) : 
+				i_factory.createTopicConnection(m_config_connection.m_username, m_config_connection.m_password);
+		
+		//1.3.8
+		i_result.setExceptionListener(this);
+				
+		//1.3.0
+		logInfo("Connected (topic connection)...");
+		
+		if (isValid(m_config_connection.m_data_clientid))
+			try {
+				i_result.setClientID(m_config_connection.m_data_clientid);
+			}
+			catch (JMSException ex) {
+				logWarning(ex, "Failed to set connection client ID");
+			}
+		
+		traceConnectionMetadata(i_result);
+		if (isDebugEnabled())
+			logDebug("connection client ID: " + i_result.getClientID());
+		
+		return m_topic_connection = i_result;
+    }
+
+    /**
+     * @since 1.3.0
+     */
+    public synchronized void closeTopicConnection() throws JMSException {
+    	
+    	if (sharesConnection()) {
+   			m_data_shared_client.closeTopicConnection();
+   			return;
+    	}
+    	if (null!=m_topic_connection)
+			try {
+				logInfo("Closing topic connection...");
+				m_topic_connection.close();
+			} catch (JMSException e) {
+				logError(e);
+			}
+    	m_topic_connection = null;
+    }
+    
+    /**
+     * @throws NamingException 
+     * @since 1.3.3
+     */
+    public InitialContext getJNDIContext() throws NamingException {
+    	
+    	if (sharesConnection())
+   			return m_data_shared_client.getJNDIContext();
+    	
+    	if (null==m_jndi_context)
+    		m_jndi_context = m_config_connection.createJNDIContext();
+		
+    	return m_jndi_context;
+    }
+    
+    /**
+     * <p>
+     * Version 1.3.0:
+     * <p>
+     * The method returns the same connection if called multiple times.
+     * If the connection is set to be shared...
+     * <p>
+     * @return
+     * @throws JMSException
+     * @throws NamingException
+     */
+    public synchronized QueueConnection createQueueConnection() throws JMSException, NamingException {
+       	
+    	//1.3.0
+    	if (sharesConnection())
+   			return m_data_shared_client.createQueueConnection();
+    	if (null!=m_queue_connection)
+    		return m_queue_connection;
+
+    	QueueConnectionFactory i_factory = null;
+	
+		//1.2.0
+		setSystemProperties();
+		
+		if (m_config_connection.m_provider_url != null) {
+			//1.3.0
+			logInfo("Connecting with JNDI interface: " + m_config_connection.m_provider_url);
+
+			/*
+		     * Lookup topic connection factory which must exist in the
+		     * factories config file.
+		     */
+			String i_fname = (m_config_connection.m_factory_name!=null)? m_config_connection.m_factory_name : "QueueConnectionFactory";
+	    	i_factory = (QueueConnectionFactory) getJNDIContext().lookup(i_fname);
+		}
+		else if (m_config_connection.m_server_url != null) {
+			//1.3.0
+			logInfo("Connecting with TCP interface: " + m_config_connection.m_server_url);
+			
+			//1.3.8
+			if (m_config_connection.m_server_url.indexOf('+')>0)
+				m_ufo_queue_connection_factory = new TibjmsUFOQueueConnectionFactory(m_config_connection.m_server_url);
+			else
+				i_factory = new TibjmsQueueConnectionFactory(m_config_connection.m_server_url, null, createFactoryProperties());
+		}
+		else {
+			logError("You must specify provider or server URL");
+			//1.2.0: System.err.println("Error: must specify provider or server URL");
+	        usage();
+		}
+		
+		//*** SETUP SECURITY
+		setGlobalSSLSettings();
+		
+		//1.2.0
+		if (isValid(m_config_connection.m_data_factory_clientid))
+			if (i_factory instanceof TibjmsQueueConnectionFactory) {
+				if (null!=m_ufo_queue_connection_factory)
+					m_ufo_queue_connection_factory.setClientID(m_config_connection.m_data_clientid);
+				else
+					((TibjmsQueueConnectionFactory)i_factory).setClientID(m_config_connection.m_data_factory_clientid);
+			}
+	
+		//1.2.0 return i_factory.createQueueConnection(m_username, m_password);
+		QueueConnection i_result = 
+			(null!=m_ufo_queue_connection_factory)? 
+				m_ufo_queue_connection_factory.createQueueConnection(m_config_connection.m_username,  m_config_connection.m_password) : 
+				i_factory.createQueueConnection(m_config_connection.m_username, m_config_connection.m_password);
+		
+		//1.3.8
+		i_result.setExceptionListener(this);
+				
+		//1.3.0
+		logInfo("Connected (queue connection)...");
+		
+		if (isValid(m_config_connection.m_data_clientid))
+			try {
+				i_result.setClientID(m_config_connection.m_data_clientid);
+			}
+			catch (JMSException ex) {
+				logWarning(ex, "Failed to set connection client ID");
+			}
+		
+		traceConnectionMetadata(i_result);
+		if (isDebugEnabled())
+			logDebug("connection client ID: " + i_result.getClientID());
+		
+		return m_queue_connection = i_result;
+    }
+    
+    /**
+     * @since 1.3.0
+     */
+    public synchronized void closeQueueConnection() throws JMSException {
+    	
+    	if (sharesConnection()) {
+   			m_data_shared_client.closeQueueConnection();
+   			return;
+    	}
+    	if (null!=m_queue_connection)
+			try {
+				logInfo("Closing queue connection...");
+				m_queue_connection.close();
+			} catch (JMSException e) {
+				logError(e);
+			}
+    	m_queue_connection = null;
+    }
+    
+    /**
+     * @throws JMSException 
+     * @since 1.2.0
+     */
+    private void traceConnectionMetadata(Connection p_connection) throws JMSException {
+    	if (isDebugEnabled()) {
+			ConnectionMetaData i_meta = p_connection.getMetaData();
+			if (null==i_meta)
+				logDebug("No connection metadata");
+			else {
+				logDebug("Connection metadata:");
+				logDebug("  JMS Version: " + i_meta.getJMSVersion());
+				logDebug("  JMS Major Version: " + i_meta.getJMSMajorVersion());
+				logDebug("  JMS Minor Version: " + i_meta.getJMSMinorVersion());
+				logDebug("  Provider: " + i_meta.getJMSProviderName());
+				logDebug("  Provider Version: " + i_meta.getProviderVersion());
+				logDebug("  Provider Major Version: " + i_meta.getProviderMajorVersion());
+				logDebug("  Provider Minor Version: " + i_meta.getProviderMinorVersion());
+				logDebug("  Provider JMSX Property Names: ");
+				Enumeration<?> e = i_meta.getJMSXPropertyNames();
+				if (null!=e)
+					while(e.hasMoreElements())
+						logDebug("    " + e.nextElement());
+			}
+		}
+    }
+    
+    /**
+     * With JNDI SSL, the client side certificate files have to be setup in the connection factory.
+     * If the connection factory is on the EMS server, this means client files must be present on the
+     * EMS server machine, which seems silly in term of security.
+     * <p>
+     * This methods updates the TIBCO EMS security settings so client side settings are not required in
+     * the connection factory on the EMS server.
+     * <p>
+     * @since 1.1.0
+     */
+    private void setGlobalSSLSettings() throws JMSSecurityException {
+    	/*if (m_ssl_enabled) {
+    		com.tibco.tibjms.TibjmsSSL.setVerifyHost(m_ssl_verify_host);
+    		com.tibco.tibjms.TibjmsSSL.setVerifyHostName(m_ssl_verify_hostname);
+    		if (m_ssl_identity!=null && !m_ssl_identity.equals(""))
+    			com.tibco.tibjms.TibjmsSSL.setIdentity(m_ssl_identity, m_ssl_key, m_ssl_password.toCharArray());
+    		
+    		if (m_ssl_trustedcerts!=null && m_ssl_trustedcerts.equals("")) {
+				//Vector i_trusted = new Vector(1);
+				//i_trusted.add(m_ssl_trustedcerts);
+				com.tibco.tibjms.TibjmsSSL.addTrustedCerts(m_ssl_trustedcerts);
+			}    		
+    	}*/
+    }
+    
+    /**
+     * @since 1.2.0
+     */
+    private void setSystemProperties() {
+    	for(String i_name : m_data_system_properties.keySet())
+    		if (null==System.getProperty(i_name))
+    			System.setProperty(i_name, m_data_system_properties.get(i_name));
+    }
+    
+    /**
+     * When using a TibjmsQueueConnectionFactory (connecting with tcp), this method creates appropriate
+     * properties to associate with the factory.
+     * <p>
+     * @since 1.1.0
+     */
+	private HashMap createFactoryProperties() {
+    	return m_config_ssl.createFactoryProperties();
+    }
+    
+    /**
+     * Writes a message into the output file.
+     * <p>
+     * Since version 1.2.0, if the output file is a folder, each message is written in its own file.
+     * <p>
+     * @param p_msg The message (cannot be <code>null</code>).
+     * @param p_header A string line to write before the message details (cannot be <code>null</code>).
+     */
+    public void saveMessage(Message p_msg, String p_header) {
+    	
+    	//1.2.0
+    	File i_out_file = m_out_file;
+    	
+    	try {
+    		if (p_msg instanceof MapMessage && m_unmapMapMsgs==true) {
+    			byte i_bytes[] = ((MapMessage)p_msg).getBytes("message_bytes");
+
+    			if (null!=i_bytes) {
+    				saveMessage(Tibjms.createFromBytes(i_bytes), p_header);
+    				return;
+    			}    			
+    		}
+    		
+    		if (null==m_out_pstream) {//1.2.0: m_out_file!=null) {
+    			
+    			//1.2.0
+    			if (m_out_file.isDirectory() && m_out_file.exists()) {
+    				File i_folder = new File(m_out_file, toFilename(p_msg.getJMSDestination().toString()));
+    				i_folder.mkdir();
+    				
+    				i_out_file = new File(i_folder, toFilename(p_msg.getJMSMessageID())+".msg");
+    			}
+    			
+    			m_out_fstream = new FileOutputStream(i_out_file, true);
+				m_out_pstream = new PrintStream(m_out_fstream);
+		    }
+		    m_out_pstream.println(p_header);
+		    
+		    //*** WRITE MESSAGE METADATA
+		    m_out_pstream.println("$MsgHeader$");
+		    m_out_pstream.println("JMSMessageID="+p_msg.getJMSMessageID());
+		    Date d = new Date();
+		    d.setTime(p_msg.getJMSTimestamp());
+		    m_out_pstream.println("JMSTimestamp="+d.toString());
+		    m_out_pstream.println("JMSDestination="+p_msg.getJMSDestination());
+		    String dm = (p_msg.getJMSDeliveryMode()==javax.jms.DeliveryMode.PERSISTENT?"PERSISTENT":(p_msg.getJMSDeliveryMode()==javax.jms.DeliveryMode.NON_PERSISTENT?"NON_PERSISTENT":"RELIABLE"));
+		    m_out_pstream.println("JMSDeliveryMode="+dm);
+		    if (p_msg.getJMSCorrelationID() != null)
+		    	m_out_pstream.println("JMSCorrelationID="+p_msg.getJMSCorrelationID());
+		    if (p_msg.getJMSType() != null)
+		    	m_out_pstream.println("JMSType="+p_msg.getJMSType());
+		    if (p_msg.getJMSReplyTo() != null)
+		    	m_out_pstream.println("JMSReplyTo="+p_msg.getJMSReplyTo());
+		    if (p_msg.getJMSExpiration() > 0) {
+		    	d.setTime(p_msg.getJMSExpiration());
+		    	m_out_pstream.println("JMSExpiration="+ d.toString());
+		    }
+		    
+		    //1.2.0: write JMS Priority as well
+		    m_out_pstream.println("JMSPriority="+p_msg.getJMSPriority());
+		    
+		    //*** WRITE MESSAGE PROPERTIES
+		    m_out_pstream.println("$MsgProperties$");
+		    Enumeration<?> props = p_msg.getPropertyNames();
+		    String ps;
+		    while(props.hasMoreElements()) {
+		    	ps = (String) props.nextElement();
+		    	if (ps.equals("JMS_TIBCO_PRESERVE_UNDELIVERED")) {
+		    		m_out_pstream.println(ps+'='+p_msg.getBooleanProperty(ps));
+		    	}
+		    	else
+		    		m_out_pstream.println(ps+'='+p_msg.getStringProperty(ps));
+		    }
+		    
+		    //*** WRITE MESSAGE BODY
+		    m_out_pstream.println("$MsgBody$");
+	
+		    if (p_msg instanceof TextMessage) {
+		    	TextMessage  textMsg = (TextMessage) p_msg;
+		    	m_out_pstream.println(textMsg.getText());
+		    }
+		    else if (p_msg instanceof MapMessage) {
+		    	MapMessage  innerMapMsg = (MapMessage) p_msg;
+		    	m_out_pstream.println(innerMapMsg.toString());
+		    } 
+		    else if (p_msg instanceof BytesMessage) {
+		    	BytesMessage  bytesMsg = (BytesMessage) p_msg;
+		    	bytesMsg.reset();
+		    	long s = bytesMsg.getBodyLength();
+		    	if (s > 1000) {
+				    System.err.println("Warning: Bytes message limited to 1000 bytes");
+				    s=1000;
+				}
+				byte[] b = new byte[(int)s];
+				bytesMsg.readBytes(b,(int)s);
+				m_out_pstream.println(dumpBytes(b));
+		    }
+		    else if (p_msg instanceof StreamMessage) {
+				StreamMessage  streamMsg = (StreamMessage) p_msg;
+				m_out_pstream.println(streamMsg.toString());
+		    }
+		    else if (p_msg instanceof ObjectMessage) {
+				ObjectMessage  objectMsg = (ObjectMessage) p_msg;
+				m_out_pstream.println(objectMsg.toString());
+		    }
+	
+		    //*** WRITE END
+		    m_out_pstream.println("$MsgEnd$");
+		    m_out_pstream.println("");
+		    
+		    //1.2.0
+		    m_out_pstream.flush();
+		}
+		catch(Exception ex) {
+			//1.2.0
+			System.err.println("Error: failed to write message to file: " + ((null!=i_out_file)? i_out_file.getAbsolutePath() : "null"));
+			
+		    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
+		    ex.printStackTrace();
+		    return ;
+		}
+    	//1.2.0
+    	finally {
+			if (m_out_file.isDirectory() && m_out_file.exists()) {
+				m_out_pstream.close();
+				try {
+					m_out_fstream.close();
+				} catch (IOException ex) {
+					System.err.println("Error: failed to close message file: " + ((null!=i_out_file)? i_out_file.getAbsolutePath() : "null"));
+				    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
+				}
+				
+				m_out_pstream = null;
+				m_out_fstream = null;
+			}
+    	}
+    } 
+
+    public void loadMessage(TextMessage msg) {
+    	//1.2.0
+
+		//1.1.0
+		File f = m_in_files.elementAt(m_in_files_index);
+		m_in_files_index++;
+		if (m_in_files_index>=m_in_files.size())
+			m_in_files_index = 0;
+
+		loadMessage(msg, f);
+		/*
+    	try {
+    		//1.1.0
+    		File f = m_in_files.elementAt(m_in_files_index);
+    		m_in_files_index++;
+    		if (m_in_files_index>=m_in_files.size())
+    			m_in_files_index = 0;
+    		
+    		//File f = new File(infileName);
+    		BufferedReader d = new BufferedReader(new FileReader(f));
+    		String l;
+    		StringBuffer t = new StringBuffer();
+    		boolean first = true;
+    		while ((l = d.readLine()) != null) {
+				if (l.startsWith("$MsgHeader$")) {
+				    while ((l = d.readLine()) != null) {
+						if (l.startsWith("$MsgProperties$")) {
+						    while ((l = d.readLine()) != null) {
+								if (l.startsWith("$MsgBody$")) {
+								    while ((l = d.readLine()) != null) {
+								    	if (l.startsWith("$MsgEnd$"))
+								    		break;
+				
+								    	if (!first)
+								    		t.append('\n');
+								    	t.append(l);
+								    	first = false;
+								    }
+								    msg.setText(t.toString());
+								    break;
+								}
+								else {
+								    setMsgProp(l,msg);
+								}
+						    }
+						}
+						else {
+						    setJMSMsgProp(l,msg);
+						}
+				    }
+				}
+    		}
+    		d.close();
+    	}
+    	catch(JMSException ex) {
+    		System.err.println("JMSException: "+ex.getMessage());
+    		return ;
+    	}
+    	catch(IOException ie) {
+    		System.err.println("JavaIOException: "+ie.getMessage());
+    		return ;
+    	}*/
+    } 
+    
+    /**
+     * @since 1.2.0
+     */
+    public void loadMessage(TextMessage msg, File p_file) {
+    	
+    	BufferedReader d = null;
+    	try {
+    		d = new BufferedReader(new FileReader(p_file));
+    		String l;
+    		StringBuilder t = new StringBuilder();
+    		boolean first = true;
+    		
+    		//1.3.7
+    		boolean i_header = false, i_props = false, i_body = true;
+    		while ((l = d.readLine()) != null) {
+    			if (l.startsWith("$Msg$")) {
+					i_header = false; i_props = false; i_body = false;
+				}
+    			else if (l.startsWith("$MsgHeader$")) {
+					i_header = true; i_props = false; i_body = false;
+				}
+				else if (l.startsWith("$MsgProperties$")) {
+					i_header = false; i_props = true; i_body = false;
+				}
+				else if (l.startsWith("$MsgBody$")) {
+					i_header = false; i_props = false; i_body = true;
+				}
+				else if (l.startsWith("$MsgEnd$")) {
+		    		break;
+				}
+				else if (i_header)
+					setJMSMsgProp(l,msg);
+				else if (i_props)
+					setMsgProp(l,msg);
+				else if (i_body) {
+					if (!first)
+						t.append('\n');
+					t.append(l);
+					first = false;
+				}
+    		}
+    		
+			msg.setText(t.toString());
+								    
+    		/*while ((l = d.readLine()) != null) {
+				if (l.startsWith("$MsgHeader$")) {
+				    while ((l = d.readLine()) != null) {
+						if (l.startsWith("$MsgProperties$")) {
+						    while ((l = d.readLine()) != null) {
+								if (l.startsWith("$MsgBody$")) {
+								    while ((l = d.readLine()) != null) {
+								    	if (l.startsWith("$MsgEnd$"))
+								    		break;
+				
+								    	if (!first)
+								    		t.append('\n');
+								    	t.append(l);
+								    	first = false;
+								    }
+								    msg.setText(t.toString());
+								    break;
+								}
+								else {
+								    setMsgProp(l,msg);
+								}
+						    }
+						}
+						else {
+						    setJMSMsgProp(l,msg);
+						}
+				    }
+				}
+    		}*/
+    	}
+    	catch(Exception ex) {
+			System.err.println("Error: failed to read message from file: " + p_file.getAbsolutePath());
+		    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
+		    ex.printStackTrace();
+    		return ;
+    	}
+    	finally {
+    		if (null!=d)
+				try {
+					d.close();
+				} catch (IOException ex) {
+					System.err.println("Error: failed to close file: " + p_file.getAbsolutePath());
+				    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
+				}
+    	}
+    } 
+    
+    public void setJMSMsgProp(String ps, TextMessage m) {
+    	try {
+		    int i = ps.indexOf('=');
+		    if (i > 0) {
+				String p = ps.substring(0,i);
+				String v = ps.substring(i+1);
+		
+				if (p.equals("JMSDeliveryMode")) {
+				    if (v.startsWith("NON"))
+				    	m.setJMSDeliveryMode(javax.jms.DeliveryMode.NON_PERSISTENT);
+				    else
+				    	m.setJMSDeliveryMode(javax.jms.DeliveryMode.PERSISTENT);
+				}
+				else if (p.equals("JMSCorrelationID"))
+				    m.setJMSCorrelationID(v);
+		
+				else if (m_replyTo == null && p.equals("JMSReplyTo"))
+				    m_replyTo = v;
+				else if (p.equals("JMSType"))
+				    m.setJMSType(v);
+		
+				else if (p.equals("JMSExpiration"))
+				    m.setJMSExpiration(Integer.parseInt(v));
+		
+				else if (p.equals("JMSPriority"))
+				    m.setJMSPriority(Integer.parseInt(v));
+		
+				else 
+				    System.err.println("Warning: Unsupported JMS property: "+p);
+		    }
+		}
+		catch(JMSException ex) {
+			//1.2.0
+			System.err.println("Error: failed to set message data...");
+		    System.err.println(ex.getClass().getSimpleName()+": "+ex.getMessage());
+			
+		    //System.err.println("JMSException: "+ex.getMessage());
+		    return ;
+		}
+    }
+    
+    public void setMsgProp(String ps, TextMessage m) {
+    	try {
+		    int i = ps.indexOf('=');
+		    if (i > 0) {
+				String p = ps.substring(0,i);
+				String v = ps.substring(i+1);
+		
+				if (p != null && p.length()>0) {
+				    if (v.equals("true") || v.equals("false"))
+				    	m.setBooleanProperty(p,Boolean.valueOf(v).booleanValue()); 
+				    else
+				    	m.setStringProperty(p,v); 
+				}
+		    }
+    	}
+    	catch(JMSException ex) {
+    		System.err.println("JMSException: "+ex.getMessage());
+    		return ;
+    	}
+    }
+
+    public abstract void usage();
+    
+    /** 
+     * <p>
+     * @throws IOException If one command line parameter uses a file and the file cannot be read.
+     * @since 1.3.0 
+     */
+    public void parseArgs(Properties p_props) throws IOException {
+    	
+    	final ArrayList<String> i_args = new ArrayList<String>();
+    	
+    	for(Enumeration<Object> e = p_props.keys() ; e.hasMoreElements() ; ) {
+    		String i_name = e.nextElement().toString();
+    		
+    		if (i_name.equals("emsclient.propfile")) continue;
+    		
+    		if (i_name.startsWith("emsclient.")) {
+    			
+    			String i_value = p_props.getProperty(i_name);
+
+    			if (i_value.equals("true"))
+        			i_args.add("-"+i_name.substring("emsclient.".length()));
+    			else if (!i_value.equals("false")) {
+    				i_args.add("-"+i_name.substring("emsclient.".length()));
+    				i_args.add(i_value);
+    			}
+    		}
+    	}
+    	
+    	parseArgs(i_args.toArray(new String[]{}));
+    }
+    
+    /** @since 1.3.0 */
+    public String getProperty(String p_name, String p_default) {
+    	return (null!=m_data_properties)? m_data_properties.getProperty(p_name, p_default) : p_default;
+    }
+
+    /**
+     * <p>
+	 * @throws IOException If one command line parameter uses a file and the file cannot be read.     
+	 */
+    public void parseArgs(String[] args) throws IOException {
+    	
+    	logInfo("Parsing arguments...");
+    	for(String i_arg : args)
+    		logInfo("Argument: ".concat(i_arg));
+    	
+    	//1.3.0: parse from a property file...
+    	if (this!=m_data_shared_client) {    	
+    		if (args.length>0 && args[0].equals("-propfile")) {
+        		if (args.length<2) usage();
+        	
+        		File i_propfile = new File(args[1]);
+        		if (!i_propfile.exists()) {
+        			logError("Cannot find property file: " + i_propfile.getAbsolutePath());
+        			usage();
+        		}
+        		
+        		m_data_properties = new Properties();
+        		FileInputStream i_sfile = null;
+        		try {
+        			i_sfile = new FileInputStream(i_propfile);
+        			m_data_properties.load(i_sfile);
+        		}
+        		catch (IOException ex) {
+        			logError("Failed to load property file: " + i_propfile.getAbsolutePath());
+        			logError(ex);
+        			usage();
+        		}
+        		finally {
+        			if (null!=i_sfile)
+        				try {
+        					i_sfile.close();
+        				}
+        				catch (IOException ex) {
+        					logWarning("Failed to close property file: " + i_propfile.getAbsolutePath());
+        					logWarning(ex.getMessage());
+        				}
+        		}
+        		
+        		parseArgs(m_data_properties);
+        		
+        		//1.3.2
+        		// parse other arguments, so they can overwrite properties...
+        		parseArgsImpl(args);
+        		return;
+    		}
+    	}
+    	
+    	// 1.3.2
+    	parseArgsImpl(args);
+    }
+    
+    /**
+     * Parses the command line arguments.
+     * <p>
+     * @since 1.3.2 
+     */
+    private void parseArgsImpl(String[] args) throws IOException { 
+        int i=0;
+
+        //1.3.0
+      	m_data_params = args;
+          
+        while(i < args.length) {
+            if (args[i].compareTo("-server")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_server_url = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-factory")==0) {// || args[i].compareTo("-jndi_factory")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_factory_name = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-provider")==0 || args[i].compareTo("-jndi_url")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_provider_url = args[i+1];
+                i += 2;
+            }
+            //1.3.3
+            else if (args[i].compareTo("-jndi_provider_factory")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_provider_factory = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-topic")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_destination.m_topic_name = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-jndi_topic")==0) { //1.3.3
+                if ((i+1) >= args.length) usage();
+                m_config_destination.m_topic_jndi_name = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-queue")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_destination.m_queue_name = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-jndi_queue")==0) { //1.3.3
+                if ((i+1) >= args.length) usage();
+                m_config_destination.m_queue_jndi_name = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-reply")==0) {
+                if ((i+1) >= args.length) usage();
+                m_replyTo = args[i+1];
+                i += 2;
+            }
+            else if (args[i].compareTo("-infile")==0) {
+                if ((i+1) >= args.length) usage();
+                //1.1.0
+                File i_file = new File(args[i+1]);
+                m_in_files.add(i_file);
+                //infileName = args[i+1];
+                
+                //1.2.0
+                if (!i_file.exists()) {
+                	System.err.println("Error: cannot find file or folder: " + i_file.getAbsolutePath());
+                	System.exit(EXIT_CODE_INVALID_FILE);
+                }
+                if (!i_file.canRead()) {
+                	System.err.println("Error: cannot read file or folder: " + i_file.getAbsolutePath());
+                	System.exit(EXIT_CODE_INVALID_FILE);
+                }
+                
+                i += 2;
+            }
+            else if (args[i].equalsIgnoreCase("-log") || args[i].equalsIgnoreCase("-outfile")) {
+                if ((i+1) >= args.length) usage();
+                m_out_file = new File(args[i+1]);
+                
+                //1.2.0: check the parent folder...
+                File i_parent = m_out_file.getParentFile();
+                if (null!=i_parent && !m_out_file.exists()) {
+	                if (!i_parent.exists()) {
+	                	System.err.println("Error: cannot find file or folder: " + i_parent.getAbsolutePath());
+	                	System.exit(EXIT_CODE_INVALID_FILE);
+	                }
+	                if (!i_parent.canWrite()) {
+	                	System.err.println("Error: cannot write into file or folder: " + i_parent.getAbsolutePath());
+	                	System.exit(EXIT_CODE_INVALID_FILE);
+	                }
+                }
+                                
+                i += 2;
+            }
+            else if (args[i].compareTo("-count")==0) {
+                if ((i+1) >= args.length) usage();
+                try {
+                    m_count = Integer.parseInt(args[i+1]);
+                }
+                catch(NumberFormatException e) {
+                    System.err.println("Error: invalid value of -count parameter");
+                    usage();
+                }
+                i += 2;
+            }
+            else if (args[i].compareTo("-delay")==0) {
+                if ((i+1) >= args.length) usage();
+                try {
+                    m_delay_ms = Integer.parseInt(args[i+1]);
+                }
+                catch(NumberFormatException e) {
+                    System.err.println("Error: invalid value of -delay parameter");
+                    usage();
+                }
+                i += 2;
+            }
+            else if (args[i].compareTo("-timeout")==0) {
+                if ((i+1) >= args.length) usage();
+                try {
+                    m_timeout_s = Integer.parseInt(args[i+1]);
+                }
+                catch(NumberFormatException e) {
+                    System.err.println("Error: invalid value of -timeout parameter");
+                    usage();
+                }
+                i += 2;
+            }
+            else if (args[i].compareTo("-user")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_username = args[i+1];
+                i += 2;
+            }
+            //1.3.3
+            else if (args[i].compareTo("-jndi_user")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_jndi_username = args[i+1];
+	            i += 2;
+	        }
+            else if (args[i].compareTo("-password")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_password = args[i+1];
+                i += 2;
+            }
+            //1.3.3
+            else if (args[i].compareTo("-jndi_password")==0) {
+                if ((i+1) >= args.length) usage();
+                m_config_connection.m_jndi_password = args[i+1];
+                i += 2;
+            }
+            //1.2.0
+            else if (args[i].matches("-password[-_]file")) {
+                if ((i+1) >= args.length) usage();
+                
+                File i_file = new File(args[i+1]);
+                if (!i_file.exists()) {
+                	System.err.println("Error: cannot find password file: " + i_file.getAbsolutePath());
+                	System.exit(EXIT_CODE_INVALID_FILE);
+                }
+                if (!i_file.canRead()) {
+                	System.err.println("Error: cannot read password file: " + i_file.getAbsolutePath());
+                	System.exit(EXIT_CODE_INVALID_FILE);
+                }
+                
+                m_config_connection.m_password = readTextFile(i_file).trim();
+                i += 2;
+            }
+            else if (args[i].compareTo("-help")==0) {
+                usage();
+            }
+            //1.1
+            else if (args[i].compareTo("-selector")==0)
+            {
+                if ((i+1) >= args.length) usage();
+                m_config_destination.m_selector = args[i+1];
+                i += 2;
+            }
+            //removed in 1.2.0
+            /*else if (args[i].compareTo("-noJMSproperty")==0) {
+            	if ((i+1) >= args.length) usage();
+            	if (null==m_removeJMSProperties)
+            		m_removeJMSProperties = new Vector<String>();
+            	m_removeJMSProperties.add(args[i+1]);
+            	i+=2;
+            }*/
+            //1.3.2
+            else if (args[i].compareTo("-noUnmap")==0) {
+            	m_unmapMapMsgs = false;
+            	i++;
+            }
+            //1.1.0
+            else if (args[i].compareTo("-ssl")==0) {
+            	m_config_ssl.m_ssl_enabled = true;
+            	i++;
+            }
+            else if (args[i].matches("-ssl[-_]identity")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_ssl.m_ssl_identity = args[i+1];
+            	i+=2;
+            }
+            else if (args[i].matches("-ssl[-_]key")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_ssl.m_ssl_key = args[i+1];
+            	i+=2;
+        	}
+            else if (args[i].matches("-ssl[-_]password")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_ssl.m_ssl_password = args[i+1];
+            	i+=2;
+    		}
+    		else if (args[i].matches("-ssl[-_]trusted([-_]certs){0,1}")) {
+    			if ((i+1) >= args.length) usage();
+    			if (null==m_config_ssl.m_ssl_trustedcerts)
+    				m_config_ssl.m_ssl_trustedcerts = new Vector<String>();
+    			m_config_ssl.m_ssl_trustedcerts.add(args[i+1]);
+    			i+=2;
+    		}
+            else if (args[i].matches("-ssl[-_]vendor")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_ssl.m_ssl_vendor = args[i+1];
+            	i+=2;
+            }
+            else if (args[i].matches("-ssl[-_]ciphers")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_ssl.m_ssl_ciphers = args[i+1];
+            	i+=2;
+            }
+            else if (args[i].matches("-ssl[-_]hostname")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_ssl.m_ssl_hostname = args[i+1];
+            	i+=2;
+            }
+            else if (args[i].matches("-ssl[-_]verify[-_]host")) {
+            	m_config_ssl.m_ssl_verify_host = true;
+            	i++;
+            }
+            else if (args[i].matches("-ssl[-_]verify[-_]hostname")) {
+            	m_config_ssl.m_ssl_verify_hostname = true;
+            	i++;
+            }
+            else if (args[i].matches("-ssl[-_]trace")) {
+            	m_config_ssl.m_ssl_trace = true;
+            	i++;
+            }
+            else if (args[i].matches("-ssl[-_]debug[-_]trace")) {
+            	m_config_ssl.m_ssl_debug_trace = true;
+            	i++;
+            }
+            //1.2.0
+            else if (args[i].matches("-debug")) {
+            	m_flag_debug = true;
+            	i++;
+            }
+            else if (args[i].matches("-noreply")) {
+            	m_flag_reply = false;
+            	i++;
+            }
+            else if (args[i].matches("-factory[-_]clientid")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_connection.m_data_factory_clientid = args[i+1];
+            	i+=2;
+            }
+            else if (args[i].matches("-clientid")) {
+            	if ((i+1) >= args.length) usage();
+            	m_config_connection.m_data_clientid = args[i+1];
+            	i+=2;
+            }
+            //1.3.0
+            else if (args[i].matches("-shared")) {
+            	m_config_connection.m_flag_shared_connection = true;
+            	i++;
+            }
+            //1.3.0
+            else if (args[i].matches("-reconnect")) {
+            	m_config_connection.m_flag_reconnect = true;
+            	i++;
+            }
+            //1.3.0
+            else if (args[i].matches("-test-threads")) {
+                if ((i+1) >= args.length) usage();
+                try {
+                    m_data_param_test_threads = Integer.parseInt(args[i+1]);
+                }
+                catch(NumberFormatException e) {
+                    System.err.println("Error: invalid value of -test-threads parameter");
+                    usage();
+                }
+                i += 2;
+            }   
+            else if (args[i].matches("-test-trigger-topic")) {
+            	if ((i+1) >= args.length) usage();
+            	m_data_param_test_trigger_topic = args[i+1];
+            	i+=2;
+            }
+            //1.3.0
+            else if (args[i].matches("-ackmode")) {
+            	parseAckModeArg(i, args);
+            	i+=2;
+            }
+            //1.3.0
+            else if (args[i].matches("-quiet")) {
+            	m_flag_param_quiet = true;
+            	i++;
+            }
+            //1.3.0
+            else if (args[i].matches("-log4j")) {
+            	m_flag_log4j = true;
+            	i++;
+            }
+            //1.3.3
+            else if (args[i].matches("-jndi_property")) {
+            	if ((i+1) >= args.length) usage();
+            	if (null==m_config_connection.m_jndi_properties) //1.3.4
+            		m_config_connection.m_jndi_properties = new ArrayList<String>();
+            	m_config_connection.m_jndi_properties.add(args[i+1]);
+            	i+=2;
+            }
+            else {
+            	boolean i_found = false;
+            	for(String i_pattern : m_data_cmdline_system_properties.keySet())
+            		if (args[i].matches(i_pattern)) {
+            			if ((i+1) >= args.length) usage();
+            			m_data_system_properties.put(m_data_cmdline_system_properties.get(i_pattern), args[i+1]);
+            			i+=2;
+            			
+            			i_found = true;
+            			break;
+            		}
+            	
+            	if (!i_found) {
+                    m_data = args[i];
+                    i++;
+            	}
+            }
+            
+            /*else {
+                m_data = args[i];
+                i++;
+            }*/
+        }
+  
+      	//1.3.0
+    	if (this!=m_data_shared_client)
+    		m_data_shared_client.parseArgs(args);
+    	
+    
+    }
+    
+    //1.3.0
+    private void parseAckModeArg(int i, String args[]) {
+    	if ((i+1) >= args.length) usage();
+        try {
+        	if (args[i+1].equalsIgnoreCase("auto_acknowledge"))
+        		m_data_param_ack_mode = javax.jms.Session.AUTO_ACKNOWLEDGE;
+        	else if (args[i+1].equalsIgnoreCase("auto"))
+        		m_data_param_ack_mode = javax.jms.Session.AUTO_ACKNOWLEDGE;
+        	
+        	else if (args[i+1].equalsIgnoreCase("client_acknowledge"))
+        		m_data_param_ack_mode = javax.jms.Session.CLIENT_ACKNOWLEDGE;
+        	else if (args[i+1].equalsIgnoreCase("client"))
+        		m_data_param_ack_mode = javax.jms.Session.CLIENT_ACKNOWLEDGE;
+
+        	else if (args[i+1].equalsIgnoreCase("dups_ok_acknowledge"))
+        		m_data_param_ack_mode = javax.jms.Session.DUPS_OK_ACKNOWLEDGE;
+        	else if (args[i+1].equalsIgnoreCase("dups_ok"))
+        		m_data_param_ack_mode = javax.jms.Session.DUPS_OK_ACKNOWLEDGE;
+
+        	else if (args[i+1].equalsIgnoreCase("session_transacted"))
+        		m_data_param_ack_mode = javax.jms.Session.SESSION_TRANSACTED;
+        	else if (args[i+1].equalsIgnoreCase("transacted"))
+        		m_data_param_ack_mode = javax.jms.Session.SESSION_TRANSACTED;
+        	
+        	else
+        		m_data_param_ack_mode = Integer.parseInt(args[i+1]);
+        }
+        catch(NumberFormatException e) {
+            System.err.println("Error: invalid value of -ackmode parameter");
+            usage();
+        }
+    }
+
+    public static String dumpBytes(byte[] bs) {
+        StringBuffer ret = new StringBuffer(bs.length);
+        for (int i = 0; i < bs.length; i++) {
+            String hex = Integer.toHexString(0x0100 + (bs[i] & 0x00FF)).substring(1);
+            ret.append((hex.length() < 2 ? "0" : "") + hex);
+        }
+        return ret.toString();
+    }
+    
+    /**
+     * Transforms a string into a valid filename by replacing all filename invalid characters by underscore characters.
+     * <p>
+     * @since 1.2.0
+     */
+    public String toFilename(String p_str) {
+    	return p_str.replaceAll("[^A-Za-z0-9-_\\.\\(\\)\\[\\]]", "_");
+    }
+
+    /**
+     * @since 1.2.0
+     */
+    public boolean isDebugEnabled() {
+    	return m_flag_debug;
+    }
+    
+    /**
+     * @since 1.3.0
+     */
+    private void trace(String p_level, String p_text) {
+    	synchronized(m_data_shared_client) {
+   			System.out.println(m_dateformat.format(new Date())+p_level + "(" + Thread.currentThread().getName() + ") " + p_text);
+    	}
+    }
+    
+    /**
+     * @since 1.3.0
+     */
+    public void log(String p_text) {
+    	if (m_flag_log4j) {
+    		if (m_logger.isInfoEnabled())
+    			m_logger.info(p_text);
+    	}
+    	else
+    		System.out.println(p_text);
+    }
+    
+    /**
+     * @since 1.2.0
+     */
+    public synchronized void logDebug(String p_text) {
+    	if (isDebugEnabled()) {
+    		//1.3.0
+    		if (m_flag_log4j) {
+    			if (m_logger.isDebugEnabled())
+					m_logger.debug(p_text);
+    		}
+    		else
+    			trace(TRACE_DEBUG, p_text);
+    	}
+    }
+
+    /**
+     * @since 1.2.0
+     */
+    public synchronized void logWarning(String p_text) {
+    	//1.3.0
+		if (m_flag_log4j) {
+			m_logger.warn(p_text);
+		}
+		else
+			trace(TRACE_WARNING, p_text);
+    }
+
+    /**
+     * @since 1.2.0
+     */
+    public void logWarning(Throwable ex, String p_text) {
+    	
+    	if (null==ex) {
+    		logWarning(p_text);
+    		return;
+    	}
+    	
+    	//1.3.0
+    	if (m_flag_log4j) {
+    		m_logger.warn(p_text, ex);
+    	}
+    	else {
+	    	StringWriter i_sw = new StringWriter();
+	    	PrintWriter i_pw = new PrintWriter(i_sw);
+	    	ex.printStackTrace(i_pw);
+	    	
+	   		logWarning(p_text.trim() + ": " + ex.getClass().getSimpleName()+ ": " + ex.getMessage().trim() + ": " + i_sw.toString());
+    	}
+    }
+    
+    /**
+     * @since 1.2.0
+     */
+    public synchronized void logInfo(String p_text) {
+    	
+   		//1.3.0
+		if (m_flag_log4j) {
+			if (m_logger.isInfoEnabled())
+				m_logger.info(p_text);
+		}
+		else
+			trace(TRACE_INFO, p_text);
+    }
+    
+    /**
+     * @since 1.2.0
+     */
+    public synchronized void logError(String p_text) {
+   		//1.3.0
+		if (m_flag_log4j)
+			m_logger.error(p_text);
+		else
+			trace(TRACE_ERROR, p_text);
+    }
+
+    /**
+     * @since 1.2.0
+     */
+    public void logError(Throwable ex) {
+    	
+   		//1.3.0
+		if (m_flag_log4j)
+			m_logger.error(ex);
+		else {
+			StringWriter i_sw = new StringWriter();
+			PrintWriter i_pw = new PrintWriter(i_sw);
+			ex.printStackTrace(i_pw);
+    	    	
+			logError(ex.getClass().getSimpleName()+ ": " + ex.getMessage().trim() + ": " + i_sw.toString());
+		}
+    }
+    
+    /**
+     * @since 1.3.0
+     */
+    public String toString() {
+    	return getClass().getSimpleName();
+    }
+    
+    /**
+     * Blocks until one message is received on the topic name from the command line argument "test-trigger-topic".
+     * This allows synchronised start of multiple message publishers/senders.
+     * <p>
+     * @since 1.3.0
+     */
+    public void waitOnTriggerTopic() throws JMSException, NamingException, IOException {
+    	
+    	if (null==getTestTriggerTopic())
+    		return;
+    	
+		//*** WAIT FOR 1ST MSG ON TRIGGER TOPIC BEFORE STARTING PUBLISHING/SENDING LOOP
+    	
+    	String i_args[] = new String[getArgs().length+6];
+    	for(int i=0;i<getArgs().length ; i++)
+    		i_args[i] = getArgs()[i];
+    	
+    	i_args[getArgs().length] = "-count";
+    	i_args[getArgs().length+1] = "1";
+    	i_args[getArgs().length+2] = "-test-threads";
+    	i_args[getArgs().length+3] = "1";
+    	i_args[getArgs().length+4] = "-topic";
+    	i_args[getArgs().length+5] = getTestTriggerTopic();
+    	
+    	try {
+    		EMSTopicListener i_trigger = new EMSTopicListener(i_args);
+
+    		//*** BLOCKS UNTIL ONE MSG IS RECEIVED
+        	i_trigger.start();
+
+    	} catch (JMSException ex) {
+    		logError("Failed to listen on trigger topic: " + getTestTriggerTopic());
+    		logError(ex);
+			throw ex;
+    	} catch (NamingException ex) {
+    		logError("Failed to listen on trigger topic: " + getTestTriggerTopic());
+    		logError(ex);
+			throw ex;
+    	} catch (IOException ex) {
+    		logError("Failed to listen on trigger topic: " + getTestTriggerTopic());
+    		logError(ex);
+			throw ex;
+		}
+    }
+    
+    /** @since 1.3.8 */
+    public void onException(final JMSException exception) {
+    	logError(exception);
+    	
+    	if (null!=m_ufo_queue_connection_factory)
+    		try {
+    			logWarning("Recovering queue connection...");
+    			m_ufo_queue_connection_factory.recoverConnection(m_queue_connection);
+    			logWarning("Recovering queue connection... Done.");
+    		}
+    		catch (final JMSException ex) {
+    			logError("Failed to recover queue connection: " + ex.getMessage());
+    		}
+
+    	if (null!=m_ufo_topic_connection_factory)
+    		try {
+    			logWarning("Recovering topic connection...");
+    			m_ufo_topic_connection_factory.recoverConnection(m_topic_connection);
+    			logWarning("Recovering topic connection... Done.");
+    		}
+    		catch (final JMSException ex) {
+    			logError("Failed to recover topic connection: " + ex.getMessage());
+    		}
+    }
+    
+	/*************************************************************************/
+	/***  STATIC METHODS  ****************************************************/
+	/*************************************************************************/
+    
+    /**
+     * Tests if a string is not <code>null</code> and not empty after being trimmed.
+     * <p>
+     * @since 1.2.0
+     */
+    public static boolean isValid(String p_str) {
+    	return null!=p_str && p_str.trim().length()>0;
+    }
+
+    /**
+     * Returns the entire content of a text file into a string.
+     * Newline characters at the end of each line are converted to &quot;\n&quot;.
+     * <p>
+     * @param p_file The file to read.
+     * @return a string containing all lines of the file. If exceptions occur, the returned string is empty.
+     * @since 1.2.0
+     */
+     public static String readTextFile(File p_file) throws IOException {
+    	 StringBuffer i_text = new StringBuffer();
+
+         BufferedReader i_reader = null;
+         try {
+        	 i_reader = new BufferedReader(new FileReader(p_file));
+             String i_line ;
+             while((i_line = i_reader.readLine())!=null) {
+            	 i_text.append(i_line);
+                 i_text.append('\n');
+             }
+             return i_text.toString();
+         }
+         finally {
+        	 if (null!=i_reader)
+        		try {
+        			i_reader.close();
+        		}
+        	 	catch (Exception ex) {
+        	 		
+        	 	}
+            }
+     }
+}
+
+/*****************************************************************************/
+/***  END OF FILE  ***********************************************************/
+/*****************************************************************************/
+
+

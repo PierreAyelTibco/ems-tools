@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.tibco.psg</groupId>
+	<artifactId>emstools</artifactId>
+	<version>1.4.0</version>
+
+	<name>emstools</name>
+	<!-- FIXME change it to the project's website -->
+	<url>http://www.example.com</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.tibco</groupId>
+			<artifactId>jms.jar</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/jms.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>com.tibco</groupId>
+			<artifactId>log4j-1.2.15</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/log4j-1.2.15.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>com.tibco</groupId>
+			<artifactId>jtibms.jar</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/tibjms.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>com.tibco</groupId>
+			<artifactId>jtibmsadmin.jar</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/tibjmsadmin.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>com.tibco</groupId>
+			<artifactId>jtibmsufo.jar</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/tibjmsufo.jar</systemPath>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>8</source>
+					<target>8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.1</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>false</addClasspath>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+						</manifest>
+						<manifestEntries>
+							<Specification-Title>com.tibco.psg.emstools</Specification-Title>
+							<Specification-Vendor>TIBCO PSG UK</Specification-Vendor>
+							<Implementation-Title>TIBCO EMS Tools</Implementation-Title>
+							<!-- Implementation-Version" value="${package.version}, Build: ${build.number}, ${TODAY_UK} ${TIME_UK}"/ -->
+							<Implementation-Vendor>TIBCO PSG UK</Implementation-Vendor>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>install</phase>
+						<configuration>
+							<target>
+								<copy file="target/${project.artifactId}-${project.version}.jar" tofile="lib/${project.artifactId}.jar"/>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+		        </plugin>		
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.1</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<appendAssemblyId>false</appendAssemblyId>
+							<descriptors>
+								<descriptor>src/main/assembly/windows-zip.xml</descriptor>
+							</descriptors>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
