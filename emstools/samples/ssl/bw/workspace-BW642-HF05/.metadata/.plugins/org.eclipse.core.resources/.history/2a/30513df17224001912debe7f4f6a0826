@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:keystore="http://xsd.tns.tibco.com/bw/sharedresource/trinity/models/cred/keystore" xmlns:sp="http://xsd.tns.tibco.com/bw/sharedresource/trinity/models/securityprovider" xmi:id="_eTfjsSRqEemVh7yM-LH4mA" name="ems-ssl-sample.KeystoreProviderResource" type="keystore:KeystoreConfiguration">
+  <jndi:configuration xsi:type="sp:CredentialSecurityProvider" xmi:id="_eTgx0CRqEemVh7yM-LH4mA">
+    <configuration xsi:type="keystore:KeystoreConfiguration" xmi:id="_eTgx0SRqEemVh7yM-LH4mA" keystoreType="JKS"/>
+  </jndi:configuration>
+</jndi:namedResource>

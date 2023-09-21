@@ -16,21 +16,24 @@
 	     	<directory>${project.basedir}/lib</directory>
 	       	<outputDirectory>/lib</outputDirectory>
 	</fileSet>
+        <fileSet>
+	     	<directory>${project.basedir}/samples</directory>
+	       	<outputDirectory>/samples</outputDirectory>
+	</fileSet>
     </fileSets>
     <files>
     	<file>
     		<source>${project.basedir}/readme.txt</source>
     	</file>
+    	<file>
+	    	<source>${project.basedir}/doc/EMSTools-User's Guide-v1.3.8.docx</source>
+	    	<outputDirectory>/doc</outputDirectory>
+    	</file>
         <file>
-            <source>target/${project.artifactId}-${project.version}.jar</source>
-            <destName>${project.artifactId}.jar</destName>
-            <outputDirectory>/lib</outputDirectory>
-        </file>
-        <file>
-             <source>${project.basedir}/bin/EMSAdmin.sh</source>
-             <lineEnding>unix</lineEnding>
-             <fileMode>0744</fileMode>
-             <outputDirectory>/bin</outputDirectory>
+        	<source>${project.basedir}/bin/EMSAdmin.sh</source>
+        	<lineEnding>unix</lineEnding>
+        	<fileMode>0744</fileMode>
+        	<outputDirectory>/bin</outputDirectory>
         </file>
         <file>
              <source>${project.basedir}/bin/EMSAdmin-all.sh</source>
@@ -80,13 +83,11 @@
              <fileMode>0744</fileMode>
              <outputDirectory>/bin</outputDirectory>
         </file>
+        
+        <file>
+	      <source>${project.basedir}/target/${project.artifactId}-${project.version}.jar</source>
+              <outputDirectory>/lib</outputDirectory>
+              <destName>${project.artifactId}.jar</destName>
+        </file>
     </files>
-    <dependencySets>
-        <dependencySet>
-            <outputDirectory>lib</outputDirectory>
-            <excludes>
-                <exclude>${project.groupId}:${project.artifactId}:jar:*</exclude>
-            </excludes>
-        </dependencySet>
-    </dependencySets>
 </assembly>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jndi:namedResource xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:id="http://www.tibco.com/ws/2013/11/identity" xmlns:jms="http://xsd.tns.tibco.com/bw/models/sharedresource/jms" xmlns:jndi="http://xsd.tns.tibco.com/amf/models/sharedresource/jndi" xmlns:sca_ext="http://www.tibco.com/ns/sca/201311" xmlns:sslclient="http://xsd.tns.tibco.com/bw/sharedresource/trinity/models/sslclient" xmi:id="_rtA_ASRpEemVh7yM-LH4mA" name="ems-ssl-sample.JMSConnectionResource" type="jms:JMSConnectionFactory">
+  <identitySet xmi:id="_zUOoACRpEemVh7yM-LH4mA" appliesTo="namedResource" name="HttpClientIdentitySet" provides="confidentiality">
+    <sca_ext:intentMap xmi:id="_zUOoASRpEemVh7yM-LH4mA" provides="sca_ext:confidentiality">
+      <sca_ext:qualifier xmi:id="_zUOoAiRpEemVh7yM-LH4mA" name="transport">
+        <id:IdentityReference xmi:id="_zUP2ICRpEemVh7yM-LH4mA" URI="ems-ssl-sample.SSLClientResource" type="sslclient:SSLClientConfiguration"/>
+      </sca_ext:qualifier>
+    </sca_ext:intentMap>
+  </identitySet>
+  <jndi:configuration xsi:type="jms:DirectConnectionFactory" xmi:id="_sV8AMCRpEemVh7yM-LH4mA" factoryType="Queue/Topic" providerURL="ssl://localhost:7443">
+    <userCredentials xmi:id="_lsWAkCRqEemVh7yM-LH4mA" username="admin" password=""/>
+  </jndi:configuration>
+</jndi:namedResource>

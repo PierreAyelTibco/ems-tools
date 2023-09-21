@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<EMS-Servers>
+    <LOCAL>
+	<ConnectionNode alias="EMS-SERVER" url="ssl://localhost:7443" user="admin" password="" autoConnect="true" logServerInfo="WarnLimits" logDir="./log">
+		<WarnLimits Connections="1000" Sessions="10000" Queues="2000" Topics="2000" Durables="1000" PendingMsgs="10000" PendingMsgSize="100000000" MsgMem="100000000" InMsgRate="1000"/>
+		<ErrorLimits Connections="2000" Sessions="20000" Queues="5000" Topics="5000" Durables="5000" PendingMsgs="100000"  PendingMsgSize="300000000" MsgMem="300000000" InMsgRate="2000"/>
+
+		<EventMonitor maxDisplayedEvents="50" enabled="true">
+			<EventSubscription monitorTopic="$sys.monitor.limits.*"/>
+			<EventSubscription monitorTopic="$sys.monitor.server.warning"/>
+		</EventMonitor>
+
+		<SSLParam name="com.tibco.tibjms.ssl.trace" type="boolean" value="true" />
+		<SSLParam name="com.tibco.tibjms.ssl.trusted_certs" type="string" value="..\..\ssl\certs\server_root.cert.pem" />
+		<SSLParam name="com.tibco.tibjms.ssl.enable_verify_hostname" type="boolean" value="false" />
+		<SSLParam name="com.tibco.tibjms.ssl.enable_verify_host" type="boolean" value="false" />
+
+		<SSLParam name="com.tibco.tibjms.ssl.identity" type="string" value="..\..\ssl\certs\client_identity.p12" />
+		<SSLParam name="com.tibco.tibjms.ssl.password" type="string" value="password" />
+	</ConnectionNode>
+	</LOCAL>
+</EMS-Servers>

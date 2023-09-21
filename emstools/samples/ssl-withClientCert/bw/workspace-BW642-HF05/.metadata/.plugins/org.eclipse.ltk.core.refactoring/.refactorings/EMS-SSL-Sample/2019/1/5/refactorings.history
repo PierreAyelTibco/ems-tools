@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename the JNDI name of the shared resource &apos;/EMS-SSL-Sample/Resources/ems-ssl-sample/KeystoreProviderResource.keystoreProviderResource&apos;&#x0A;- Old JNDI name: &apos;ems-ssl-sample.KeystoreProviderResource&apos;&#x0A;- New JNDI name: &apos;ems-ssl-sample.checkServerCert&apos;&#x0A;- Original project: &apos;EMS-SSL-Sample&apos;&#x0A;- Updates references to this shared resource in other resources" description="Rename JNDI name of shared resource &apos;/EMS-SSL-Sample/Resources/ems-ssl-sample/KeystoreProviderResource.keystoreProviderResource&apos; to &apos;ems-ssl-sample.checkServerCert&apos;" flags="6" id="com.tibco.amf.design.sr.core.rename.sharedresource" newName="ems-ssl-sample.checkServerCert" sharedResourcePath="/EMS-SSL-Sample/Resources/ems-ssl-sample/KeystoreProviderResource.keystoreProviderResource" stamp="1548854245947" updateReferences="true"/>
+</session>
