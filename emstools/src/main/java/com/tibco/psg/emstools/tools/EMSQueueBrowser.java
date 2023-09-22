@@ -41,6 +41,9 @@ public class EMSQueueBrowser extends EMSQueueClient {
 		m_count = 0;
         parseArgs(p_args);
 
+        //1.3.3
+        checkArguments();
+        
         /* print parameters */
         log("\n------------------------------------------------------------------------");
         //1.3.0
@@ -53,12 +56,6 @@ public class EMSQueueBrowser extends EMSQueueClient {
         log("Max Messages................. "+((m_count>0)? ""+m_count:"no limit"));
         log("Selector..................... " + getDestinationConfiguration().getSelector());
         log("------------------------------------------------------------------------\n");
-
-        //1.3.3
-        checkArguments();
-        
-        //1.3.3
-        //start(); //user must call start()...
 	}
 	
 	/**

@@ -220,6 +220,9 @@ public class EMSQueueSender extends EMSQueueClient {
 		
         parseArgs(p_args);
 
+        //1.3.3
+        checkArguments();
+
         /* print parameters */
         log(" ");
         log("------------------------------------------------------------------------");
@@ -231,13 +234,6 @@ public class EMSQueueSender extends EMSQueueClient {
         //1.3.3
         logQueue();
         log("------------------------------------------------------------------------\n");
-
-        //1.3.3
-        checkArguments();
-
-        //1.2.0 System.out.println("Sending on queue '"+m_queue_name+"'\n");
-        //1.3.0
-        //start(); //user must call start()...
 	}
 	
 	/**

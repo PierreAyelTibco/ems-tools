@@ -26,7 +26,7 @@
     		<source>${project.basedir}/readme.txt</source>
     	</file>
     	<file>
-	    	<source>${project.basedir}/doc/EMSTools-User's Guide-v1.3.8.docx</source>
+	    	<source>${project.basedir}/doc/EMSTools-User's Guide-v1.4.0.docx</source>
 	    	<outputDirectory>/doc</outputDirectory>
     	</file>
         <file>

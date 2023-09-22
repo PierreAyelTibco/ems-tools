@@ -654,6 +654,10 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
 			exitOnInvalidUsage();
 		}
 	
+		//1.4.0
+		if (isDebugEnabled())
+			logDebug("Found connection factory: ".concat(i_factory.toString()));
+		
 		//*** SETUP SECURITY
 		setGlobalSSLSettings();
 		
@@ -662,10 +666,14 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
 			if (i_factory instanceof TibjmsQueueConnectionFactory)
 				((TibjmsQueueConnectionFactory)i_factory).setClientID(m_config_connection.m_data_factory_clientid);
 		
-		TopicConnection i_result = 
+		final TopicConnection i_result = 
 			(null!=m_ufo_topic_connection_factory)? 
 				m_ufo_topic_connection_factory.createTopicConnection(m_config_connection.m_username,  m_config_connection.m_password) : 
 				i_factory.createTopicConnection(m_config_connection.m_username, m_config_connection.m_password);
+		
+		//1.4.0
+		if (isDebugEnabled())
+			logDebug("Created connection: ".concat(i_result.toString()));
 		
 		//1.3.8
 		i_result.setExceptionListener(this);
@@ -771,6 +779,10 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
 			exitOnInvalidUsage();
 		}
 		
+		//1.4.0
+		if (isDebugEnabled())
+			logDebug("Found connection factory: ".concat(i_factory.toString()));
+		
 		//*** SETUP SECURITY
 		setGlobalSSLSettings();
 		
@@ -783,10 +795,14 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
 					((TibjmsQueueConnectionFactory)i_factory).setClientID(m_config_connection.m_data_factory_clientid);
 			}
 	
-		QueueConnection i_result = 
+		final QueueConnection i_result = 
 			(null!=m_ufo_queue_connection_factory)? 
 				m_ufo_queue_connection_factory.createQueueConnection(m_config_connection.m_username,  m_config_connection.m_password) : 
 				i_factory.createQueueConnection(m_config_connection.m_username, m_config_connection.m_password);
+		
+		//1.4.0
+		if (isDebugEnabled())
+			logDebug("Created connection: ".concat(i_result.toString()));
 		
 		//1.3.8
 		i_result.setExceptionListener(this);
@@ -1186,7 +1202,7 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
 	 */
     public void parseArgs(final String[] args) throws IOException {
     	
-    	logInfo("Parsing arguments...");
+    	/*logInfo("Parsing arguments...");
     	for(String i_arg : args)
     		logInfo("Argument: ".concat(i_arg));
     	try {
@@ -1194,7 +1210,7 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
     	}
     	catch (Exception ex) {
     		ex.printStackTrace();
-    	}
+    	}*/
     	
     	//1.3.0: parse from a property file...
     	if (this!=m_data_shared_client) {    	
@@ -1588,8 +1604,6 @@ public abstract class EMSClient extends BaseObject implements Serializable, Exce
       	//1.3.0
     	if (this!=m_data_shared_client)
     		m_data_shared_client.parseArgs(args);
-    	
-    
     }
     
     /** @since 1.4.0 */

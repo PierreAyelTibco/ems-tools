@@ -76,6 +76,9 @@ public class EMSTopicListener extends EMSTopicClient {
     	m_delay_ms = 0; //1.3.0
 
     	parseArgs(p_args);
+       
+        //1.3.3
+        checkArguments();
 
        /* print parameters */
     	log(" ");
@@ -90,9 +93,6 @@ public class EMSTopicListener extends EMSTopicClient {
         log("Max Messages................. "+((m_count>0)? ""+m_count:"no limit"));
         log("Time to wait for next msg.... "+((m_timeout_s>0)? ""+m_timeout_s+"s":"infinite"));
         log("------------------------------------------------------------------------\n");
-       
-        //1.3.3
-        checkArguments();
 	}
 	
 	/**

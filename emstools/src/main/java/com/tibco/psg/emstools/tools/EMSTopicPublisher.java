@@ -214,6 +214,9 @@ public class EMSTopicPublisher extends EMSTopicClient {
 		
         parseArgs(p_args);
 
+        //1.3.3
+        checkArguments();
+
         /* print parameters */
         log(" ");
         log("------------------------------------------------------------------------");
@@ -223,9 +226,6 @@ public class EMSTopicPublisher extends EMSTopicClient {
         //1.3.3
         logTopic();
         log("------------------------------------------------------------------------\n");
-
-        //1.3.3
-        checkArguments();
 	}
 	
 	/**

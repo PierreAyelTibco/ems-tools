@@ -89,6 +89,9 @@ public class EMSQueueReceiver extends EMSQueueClient {
     	m_delay_ms = 0; //1.3.0
     	
  		parseArgs(p_args);
+       
+        //1.3.3
+        checkArguments();
 
  		/* print parameters */
  		log(" ");
@@ -104,13 +107,6 @@ public class EMSQueueReceiver extends EMSQueueClient {
         log("Max Messages................. "+((m_count>0)? ""+m_count:"no limit"));
         log("Time to wait for next msg.... "+((m_timeout_s>0)? ""+m_timeout_s+"s":"infinite"));
         log("------------------------------------------------------------------------\n");
-       
-        //1.3.3
-        checkArguments();
-
-        //1.2.0 System.out.println("Receiving from queue: "+m_queue_name+"\n");
-        //1.3.0
-        //start(); //user must call start()...
 	}
 	
 	/**
