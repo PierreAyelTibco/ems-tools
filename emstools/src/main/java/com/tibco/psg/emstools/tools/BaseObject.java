@@ -130,7 +130,7 @@ public class BaseObject extends Object {
     		//1.3.0
     		if (m_flag_log4j) {
     			if (m_logger.isDebugEnabled())
-					m_logger.debug(p_text);
+    				m_logger.debug(p_text);
     		}
     		else
     			trace(TRACE_DEBUG, p_text);

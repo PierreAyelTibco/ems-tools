@@ -80,7 +80,7 @@ public class EMSQueueBrowser extends EMSQueueClient {
             i_connection = createQueueConnection();
         }
         //1.2.0
-        catch (final JMSException ex) {
+        catch (final Exception ex) {
         	logError("failed to connect...");
         	logError(ex);
         	System.exit(EXIT_CODE_CONNECTION_ERROR);
@@ -157,6 +157,7 @@ public class EMSQueueBrowser extends EMSQueueClient {
         p_out.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
         p_out.println("  -user       <user name> - user name, default is null");
         p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("");
         p_out.println("  -queue      <name>      - The Queue full name");
         p_out.println("  -jndi_queue <name>      - The Queue JNDI name");
         p_out.println("  -selector   <selector>  - The selector expression");

@@ -85,7 +85,7 @@ public class EMSQueueSender extends EMSQueueClient {
                 m_connection = createQueueConnection();
             }
             //1.2.0
-            catch (JMSException ex) {
+            catch (final Exception ex) {
             	logError("failed to connect...");
             	logError(ex);
             	System.exit(EXIT_CODE_CONNECTION_ERROR);
@@ -226,13 +226,12 @@ public class EMSQueueSender extends EMSQueueClient {
         /* print parameters */
         log(" ");
         log("------------------------------------------------------------------------");
-        //1.3.0
         log(toString());
-        //System.out.println(""+getClass().getSimpleName());
         log("------------------------------------------------------------------------");
         getConnectionConfiguration().logURL(this);
-        //1.3.3
         logQueue();
+        //1.4.0
+        log("Delay between messages ...... " + m_delay_ms + " ms");
         log("------------------------------------------------------------------------\n");
 	}
 	
@@ -346,6 +345,7 @@ public class EMSQueueSender extends EMSQueueClient {
         p_out.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
         p_out.println("  -user       <user name> - user name, default is null");
         p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("");
         p_out.println("  -queue      <name>      - The Queue full name");
         p_out.println("  -jndi_queue <name>      - The Queue JNDI name");
         p_out.println("  -infile     <file name> - The file/folder that contains the message(s) to send");

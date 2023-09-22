@@ -1,9 +1,11 @@
 
 package com.tibco.psg.emstools.tools;
 
+import java.io.IOException;
 import java.io.PrintStream;
 
 import javax.jms.*;
+import javax.naming.NamingException;
 
 /**
  * <p>
@@ -28,56 +30,36 @@ public class EMSTestTopicConnection extends EMSClient {
 	 * Creates a new <code>EMSTestTopicConnection</code> object.
 	 * <p>
 	 * @param args The command line arguments.
-	 * @throws Throwable
+	 * @throws IOException 
 	 */
-	public EMSTestTopicConnection(final String[] args) throws Throwable {
+	public EMSTestTopicConnection(final String[] args) throws IOException {
 		super();
 		
         parseArgs(args);
 
        /* print parameters */
         log("\n------------------------------------------------------------------------");
-        //1.3.0
         log(toString());
-        //System.out.println("" + getClass().getSimpleName());
         log("------------------------------------------------------------------------");
         getConnectionConfiguration().logURL(this);
         log("------------------------------------------------------------------------\n");
        
         //*** CONNECT
         TopicConnection i_connection = null;
-        TopicSession i_session = null;
         try {
             i_connection = createTopicConnection();
             
             logInfo("connected successfully");
         }
         //1.2.0
-        catch (final JMSException ex) {
+        catch (final JMSException | NamingException ex) {
         	logError("failed to connect...");
         	logError(ex);
         	System.exit(EXIT_CODE_CONNECTION_ERROR);
         }
         finally {
-        	//*** CLOSE JMS SESSION
-        	if (null!=i_session)
-				try {
-					logDebug("closing session...");
-					i_session.close();
-				} 
-        		catch (final JMSException e) {
-					logError(e);
-				}
-        	
         	//*** CLOSE JMS CONNECTION
-        	if (null!=i_connection)
-				try {
-					logDebug("closing connection...");
-					i_connection.close();
-				} 
-        		catch (final JMSException e) {
-					logError(e);
-				}
+        	EMSUtil.close(this, i_connection);
         }
     }
 
@@ -90,7 +72,7 @@ public class EMSTestTopicConnection extends EMSClient {
         	new EMSTestTopicConnection(args);
         	System.exit(EXIT_CODE_SUCCESS);
         }
-        catch (final Throwable ex) {
+        catch (final Exception ex) {
         	ex.printStackTrace();
         	System.exit(EXIT_CODE_UNKNOWN_ERROR);
         }

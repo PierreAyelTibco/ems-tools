@@ -1,17 +1,12 @@
 
 package com.tibco.psg.emstools.tools;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.util.UUID;
-
 import javax.jms.JMSException;
 import javax.jms.Queue;
 import javax.jms.QueueConnection;
-import javax.jms.QueueSender;
 import javax.jms.QueueSession;
-import javax.jms.TextMessage;
 import javax.naming.NamingException;
 
 /**
@@ -106,15 +101,14 @@ public class EMSQueueClient extends EMSClient {
 
 	@Override
 	public void usage(final PrintStream p_out) {
-		// TODO Auto-generated method stub
+		//COMPLETED BY CHILD CLASSES
 	}
 	
 	/**
-	 * @throws NamingException 
-	 * @throws JMSException 
+	 * @throws Exception 
 	 * @since 1.3.9
 	 */
-	public TransientQueueConnection createTransientQueueConnection() throws JMSException, NamingException {
+	public TransientQueueConnection createTransientQueueConnection() throws Exception {
 		return new TransientQueueConnection(createQueueConnection());
 	}
 }

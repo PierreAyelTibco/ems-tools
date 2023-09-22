@@ -1,9 +1,11 @@
 
 package com.tibco.psg.emstools.tools;
 
+import java.io.IOException;
 import java.io.PrintStream;
 
 import javax.jms.*;
+import javax.naming.NamingException;
 
 /**
  * <p>
@@ -28,18 +30,16 @@ public class EMSTestQueueConnection extends EMSClient {
 	 * Creates a new <code>EMSTestQueueConnection</code> object.
 	 * <p>
 	 * @param args The command line arguments.
-	 * @throws Throwable
+	 * @throws IOException 
 	 */
-	public EMSTestQueueConnection(final String[] args) throws Throwable {
+	public EMSTestQueueConnection(final String[] args) throws IOException {
 		super();
 		
         parseArgs(args);
 
        /* print parameters */
         log("\n------------------------------------------------------------------------");
-        //1.3.0
         log(toString());
-        //System.out.println(""+getClass().getSimpleName());
         log("------------------------------------------------------------------------");
         getConnectionConfiguration().logURL(this);
         log("------------------------------------------------------------------------\n");
@@ -52,24 +52,14 @@ public class EMSTestQueueConnection extends EMSClient {
             logInfo("connected successfully");
         }
         //1.2.0
-        catch (final JMSException ex) {
-        	logError("failed to connect...");
+        catch (final JMSException | NamingException ex) {
+        	logError("Failed to connect...");
         	logError(ex);
         	System.exit(EXIT_CODE_CONNECTION_ERROR);
         }
-        
-        try{
-        }
         finally {
         	//*** CLOSE JMS CONNECTION
-        	if (null!=i_connection)
-        		try {
-					logDebug("closing connection...");
-					i_connection.close();
-				} 
-        		catch (final JMSException e) {
-					logError(e);
-				}
+        	EMSUtil.close(this, i_connection);
         }
     }
 
@@ -82,7 +72,7 @@ public class EMSTestQueueConnection extends EMSClient {
         	new EMSTestQueueConnection(args);
         	System.exit(EXIT_CODE_SUCCESS);
         }
-        catch (final Throwable ex) {
+        catch (final Exception ex) {
         	ex.printStackTrace();
         	System.exit(EXIT_CODE_UNKNOWN_ERROR);
         }

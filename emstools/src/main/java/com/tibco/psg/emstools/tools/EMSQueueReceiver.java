@@ -116,10 +116,11 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 * <p>
 	 * @throws JMSException In case of JMSException.
 	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @see #start(int)
 	 * @since 1.3.0
 	 */
-	public void start() throws JMSException, NamingException {
+	public void start() throws JMSException, NamingException, InterruptedException {
 		start(getAckMode());
 	}
 	
@@ -133,10 +134,11 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 * it to the JMS API.
 	 * @throws JMSException In case of JMSException.
 	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @see javax.jms.Session
 	 * @since 1.3.0
 	 */
-	public void start(final int p_mode) throws JMSException, NamingException {
+	public void start(final int p_mode) throws JMSException, NamingException, InterruptedException {
 		
 		//1.3.0
 		while(true) {
@@ -149,17 +151,12 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	            i_connection = createQueueConnection();
 	        }
 	        //1.2.0
-	        catch (JMSException ex) {
+	        catch (final Exception ex) {
 	        	logError("Failed to connect...");
 	        	logError(ex);
 	        	
 	        	if (getConnectionConfiguration().mustReconnect()) {
-	        		try {
-						Thread.sleep(5000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					Thread.sleep(5000);
 	        		continue;
 	        	}
 	        	else
@@ -300,9 +297,10 @@ public class EMSQueueReceiver extends EMSQueueClient {
 	 * @param p_session The JMS Session that received the message.
 	 * @param p_message The received JMS Message.
 	 * @throws JMSException In case of failure while extracting data from the message.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @since 1.3.0
 	 */
-	protected void onMessage(final Session p_session, final Message p_message, final long i_totalMsgs) throws JMSException {
+	protected void onMessage(final Session p_session, final Message p_message, final long i_totalMsgs) throws JMSException, InterruptedException {
 		
 		Destination replyDest = p_message.getJMSReplyTo();
 		if (m_flag_reply && replyDest != null) {
@@ -368,8 +366,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
 		}
 		
 		//1.3.0
-		try { Thread.sleep(m_delay_ms); }
-		catch (InterruptedException e) { }	
+		Thread.sleep(m_delay_ms);
 		
 		//*** ACKNOWLEDGE THE MESSAGE
 		p_message.acknowledge();
@@ -389,6 +386,7 @@ public class EMSQueueReceiver extends EMSQueueClient {
         p_out.println("  -factory    <factory>   - JNDI factory name, default QueueConnectionFactory");
         p_out.println("  -user       <user name> - user name, default is null");
         p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("");
         p_out.println("  -queue      <name>      - The Queue full name");
         p_out.println("  -jndi_queue <name>      - The Queue JNDI name");
         p_out.println("  -selector   <selector>  - selector expression");

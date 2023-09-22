@@ -82,10 +82,10 @@ public class EMSTopicPublisher extends EMSTopicClient {
         	
         	//*** CONNECT
 	        try {
-	            m_connection = createTopicConnection();
+	            m_connection = EMSTopicPublisher.this.createTopicConnection();
 	        }
 	        //1.2.0
-	        catch (final JMSException ex) {
+	        catch (final Exception ex) {
 	        	logError("failed to connect...");
 	        	logError(ex);
 	        	System.exit(EXIT_CODE_CONNECTION_ERROR);
@@ -170,9 +170,11 @@ public class EMSTopicPublisher extends EMSTopicClient {
         }
         
        	/**
-    	 * @since 1.2.0
+       	 * <p>
+    	 * @throws InterruptedException In case the thread running this was interrupted.
+       	 * @since 1.2.0
     	 */
-    	public void sendMessage(final TextMessage message, final int delMode) throws JMSException {
+    	public void sendMessage(final TextMessage message, final int delMode) throws JMSException, InterruptedException {
     		
     	    // Set default Properties
     	    message.setBooleanProperty("JMS_TIBCO_PRESERVE_UNDELIVERED", true);
@@ -194,8 +196,7 @@ public class EMSTopicPublisher extends EMSTopicClient {
             if (m_out_file!=null)
     		    saveMessage(message, "$MsgNotify$");
 
-    		try { Thread.sleep(m_delay_ms); }
-    		catch (final InterruptedException e) { }		
+    		Thread.sleep(m_delay_ms);
     	}
 	}
 	
@@ -210,7 +211,7 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.
 	 */
 	public EMSTopicPublisher(final String[] p_args) throws IOException {
-		super(p_args);
+		super();
 		
         parseArgs(p_args);
 
@@ -223,8 +224,9 @@ public class EMSTopicPublisher extends EMSTopicClient {
         //1.3.0
         log(toString());
         getConnectionConfiguration().logURL(this);
-        //1.3.3
         logTopic();
+        //1.4.0
+        log("Delay between messages ...... " + m_delay_ms + " ms");
         log("------------------------------------------------------------------------\n");
 	}
 	
@@ -234,9 +236,10 @@ public class EMSTopicPublisher extends EMSTopicClient {
 	 * @throws JMSException In case of JMSException.
 	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
 	 * @throws IOException In case a trigger topic is used and a command line parameter uses a file and the file cannot be read.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @since 1.3.0
 	 */
-	public void start() throws JMSException, NamingException, IOException {
+	public void start() throws JMSException, NamingException, IOException, InterruptedException {
 
         //*** CONNECT, CREATE SESSION AND TOPIC PUBLISHER
 		/* 1.3.2 */
@@ -333,6 +336,7 @@ public class EMSTopicPublisher extends EMSTopicClient {
         p_out.println("  -factory    <factory>   - JNDI factory name, default TopicConnectionFactory");
         p_out.println("  -user       <user name> - user name, default is null");
         p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("");
         p_out.println("  -topic      <name>      - The Topic full name");
         p_out.println("  -jndi_topic <name>      - The Topic JNDI name");
         p_out.println("  -infile     <file name> - The file/folder that contains the message(s) to send");

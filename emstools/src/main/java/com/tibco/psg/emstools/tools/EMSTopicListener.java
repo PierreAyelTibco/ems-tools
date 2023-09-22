@@ -69,7 +69,7 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * @throws IOException If one command line parameter uses a file and the file cannot be read.
 	 */
 	public EMSTopicListener(final String[] p_args) throws IOException {
-		super(p_args);
+		super();
 		
     	m_count = 0;
     	m_timeout_s = 0;
@@ -102,11 +102,12 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * <p>
 	 * @throws JMSException In case of JMSException.
 	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @see #start(int)
 	 * @see javax.jms.Session
 	 * @since 1.3.0
 	 */
-	public void start() throws JMSException, NamingException {
+	public void start() throws JMSException, NamingException, InterruptedException {
 		start(getAckMode());
 	}
 	
@@ -120,10 +121,11 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * it to the JMS API.
 	 * @throws JMSException In case of JMSException.
 	 * @throws NamingException In case of JNDI exception when connecting to the server JNDI interface.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @see javax.jms.Session
 	 * @since 1.3.0
 	 */
-	public void start(final int p_mode) throws JMSException, NamingException {
+	public void start(final int p_mode) throws JMSException, NamingException, InterruptedException {
         
 		long i_totalMsgs = 0;
 		
@@ -137,17 +139,12 @@ public class EMSTopicListener extends EMSTopicClient {
 	            i_connection = createTopicConnection();
 	        }
 	        //1.2.0
-	        catch (final JMSException ex) {
+	        catch (final Exception ex) {
 	        	logError("failed to connect...");
 	        	logError(ex);
 	        	
 	        	if (getConnectionConfiguration().mustReconnect()) {
-	        		try {
-						Thread.sleep(5000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					Thread.sleep(5000);
 	        		continue;
 	        	}
 	        	else
@@ -279,15 +276,15 @@ public class EMSTopicListener extends EMSTopicClient {
 	 * @param p_session The JMS Session that received the message.
 	 * @param p_message The received JMS Message.
 	 * @throws JMSException In case of failure while extracting data from the message.
+	 * @throws InterruptedException In case the thread running this was interrupted.
 	 * @since 1.3.0
 	 */
-	protected void onMessage(final Session p_session, final Message p_message) throws JMSException {
+	protected void onMessage(final Session p_session, final Message p_message) throws JMSException, InterruptedException {
 		if (m_out_file!=null)
 	    	saveMessage(p_message, "$Msg$"); 
 		
 		//1.3.0
-		try { Thread.sleep(m_delay_ms); }
-		catch (InterruptedException e) { }	
+		Thread.sleep(m_delay_ms);	
 		
 		//*** ACKNOWLEDGE THE MESSAGE
 		p_message.acknowledge();
@@ -307,6 +304,7 @@ public class EMSTopicListener extends EMSTopicClient {
         p_out.println("  -factory    <factory>   - JNDI factory name, default TopicConnectionFactory");
         p_out.println("  -user       <user name> - user name, default is null");
         p_out.println("  -password   <password>  - password, default is null");
+        p_out.println("");
         p_out.println("  -topic      <name>      - The Topic full name");
         p_out.println("  -jndi_topic <name>      - The Topic JNDI name");
         p_out.println("  -selector   <selector>  - selector expression");

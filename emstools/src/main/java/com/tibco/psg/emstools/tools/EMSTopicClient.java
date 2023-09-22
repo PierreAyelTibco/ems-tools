@@ -31,7 +31,7 @@ public class EMSTopicClient extends EMSClient {
 	 * <p>
 	 * @param p_args The command line arguments.
 	 */
-	public EMSTopicClient(final String[] p_args) {
+	public EMSTopicClient() {
 		super();
 	}
 	
@@ -70,7 +70,7 @@ public class EMSTopicClient extends EMSClient {
 
 	@Override
 	public void usage(final PrintStream p_out) {
-		// TODO Auto-generated method stub
+		//COMPLETED BY CHILD CLASSES
 	}
 }
 
