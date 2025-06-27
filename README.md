@@ -29,12 +29,9 @@ A set of Java-based command line tools for TIBCO EMS:
 - **EMSTopicPublisher**:
   Publishes one or more messages into one JMS Topic. Messages can be generated randomly or read from input text files.
               
-All tools have extensive configuration options and can be used for performance 
-testing of one TIBCO ActiveSpaces datagrid.
-
 # How to Build
 
-1) Clone this repository: `git clone https://gitlab.tibcopsg.net/Ayel/ems-tools`.
+1) Clone this repository: `git clone https://github.com/PierreAyelTibco/ems-tools`.
 
 2) Go to the folder `emstools`.
 
